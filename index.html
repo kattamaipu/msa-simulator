@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MSA Simulator: Learn Gauge R&amp;R by Doing | Kattamaipu</title>
-<meta name="description" content="Free MSA simulator from Kattamaipu. Set what is true about your gauge, run a gauge R&amp;R study, and see what the study finds. %GRR, ndc, average and range vs ANOVA, explained on the shop floor.">
+<title>MSA Simulator: Gauge R&amp;R, Bias, Attribute and Destructive Studies | Kattamaipu</title>
+<meta name="description" content="Free MSA simulator from Kattamaipu. Set what is true about your gauge, run gauge R&amp;R, bias, linearity, stability, destructive and attribute (kappa) studies, and see what each study finds and misses.">
 <link rel="canonical" href="https://kattamaipu.com/tools/msa/">
 <link rel="icon" href="https://kattamaipu.com/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Kattamaipu">
 <meta property="og:title" content="Free MSA Simulator | Kattamaipu">
-<meta property="og:description" content="Set what is true about your gauge, run a gauge R&amp;R study, and see what the study finds.">
+<meta property="og:description" content="Set what is true about your gauge, run gauge R&amp;R, bias, destructive and attribute (kappa) studies, and see what each study finds.">
 <meta property="og:url" content="https://kattamaipu.com/tools/msa/">
 <meta property="og:image" content="https://kattamaipu.com/assets/img/og-msa-simulator.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -372,6 +372,8 @@
   @media (max-width: 600px) { .tm-pop { right: auto; left: 0; } }
   #trainerBtn.on { background: var(--warning-bg); border-color: var(--warning); color: var(--warning); }
   /* phone: jump between results and settings */
+  #decGaugeSeg { display: flex; flex-wrap: wrap; max-width: 100%; }
+  #decGaugeSeg button, .seg.full button { white-space: normal; line-height: 1.25; }
   .jump { display: none; position: fixed; right: 14px; bottom: 14px; z-index: 20; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; box-shadow: 0 3px 10px rgba(0,0,0,.2); }
   @media (max-width: 960px) { .jump { display: block; } }
 </style>
@@ -447,7 +449,7 @@
 
       <section class="card" id="studyCard">
         <h3 id="studyHead">2. The study</h3>
-        <div class="setblock" id="set-none"><div class="hint" style="margin-top:0">This tab has no study settings. Pick a study tab (Gauge R&amp;R, Bias, Linearity or Stability) to set one up.</div></div>
+        <div class="setblock" id="set-none"><div class="hint" style="margin-top:0">This tab has no study settings. Pick a study tab (Bias, Linearity, Stability, Gauge R&amp;R, Destructive or Accept / reject) to set one up.</div></div>
         <div class="setblock" id="set-grr">
           <div class="row3" style="grid-template-columns:1fr 1fr 1fr;">
             <label>Parts <select id="nParts"></select></label>
@@ -472,6 +474,32 @@
             <div class="hint">Same readings, two ways to split the variation. ANOVA also separates the appraiser × part interaction.</div>
           </div>
           <div class="hint">Order: every appraiser measures all parts in random order, blind to earlier readings; then trial 2, then trial 3.</div>
+        </div>
+        <div class="setblock" id="set-dest">
+          <div class="field" style="margin-top:0">
+            <div class="field-head"><span class="name">Study design</span></div>
+            <div class="seg full" id="dDesSeg"><button data-v="crossed">Batch shared by all</button><button data-v="nested">Own batches per appraiser</button></div>
+            <div class="hint" id="dDesHint"></div>
+          </div>
+          <div class="row3" style="grid-template-columns:1fr 1fr 1fr;">
+            <label><span id="dBLab">Batches</span> <select id="dB"></select></label>
+            <label>Appraisers <select id="dA"><option>2</option><option>3</option></select></label>
+            <label>Pieces each <select id="dR"><option>2</option><option>3</option></select></label>
+          </div>
+          <div class="hint" id="dSizeHint"></div>
+        </div>
+        <div class="setblock" id="set-attr">
+          <div class="row3" style="grid-template-columns:1fr 1fr 1fr;">
+            <label>Parts <select id="aN"><option>20</option><option>30</option><option>50</option><option>75</option><option>100</option></select></label>
+            <label>Appraisers <select id="aA"><option>2</option><option>3</option></select></label>
+            <label>Trials <select id="aR"><option>2</option><option>3</option></select></label>
+          </div>
+          <div class="field">
+            <div class="field-head"><span class="name">Parts in the study</span></div>
+            <div class="seg full" id="aSelSeg"><button data-v="mix">Good, bad and borderline</button><button data-v="prod">Straight from production</button><button data-v="border">Only borderline</button></div>
+            <div class="hint" id="aSelHint"></div>
+          </div>
+          <div class="hint">Every appraiser calls every part accept or reject, in random order, without seeing earlier calls; then trial 2, then trial 3. The reference call for each part comes from measuring it with a better (variable) gauge.</div>
         </div>
         <div class="setblock" id="set-bias">
           <div class="row2">
@@ -529,6 +557,8 @@
         <button data-tab="lin"><small>Location</small>Linearity</button>
         <button data-tab="stab"><small>Location</small>Stability</button>
         <button data-tab="grr"><small>Width</small>Gauge R&amp;R</button>
+        <button data-tab="dest"><small>Width</small>Destructive</button>
+        <button data-tab="attr"><small>Attribute</small>Accept / reject</button>
         <button data-tab="dec"><small>Result</small>Your decisions</button>
       </nav>
 
@@ -551,6 +581,8 @@
           <tr><td>Is it right across the whole range of sizes?</td><td>Location</td><td><button data-go="lin">Linearity</button></td></tr>
           <tr><td>Does it stay right over weeks and months?</td><td>Location</td><td><button data-go="stab">Stability</button></td></tr>
           <tr><td>Do repeated readings agree, within and between appraisers?</td><td>Width</td><td><button data-go="grr">Gauge R&amp;R</button></td></tr>
+          <tr><td>The test destroys the part. How do I study the gauge?</td><td>Width</td><td><button data-go="dest">Destructive</button></td></tr>
+          <tr><td>Go/no-go gauge or visual check: do inspectors make the same call?</td><td>Attribute</td><td><button data-go="attr">Accept / reject</button></td></tr>
           <tr><td>What does all this do to accept / reject decisions?</td><td>Result</td><td><button data-go="dec">Your decisions</button></td></tr>
         </table>
         <details class="help">
@@ -698,19 +730,92 @@
         </div>
       </section>
 
+      <!-- Destructive -->
+      <section class="card tabpanel" id="tab-dest" hidden>
+        <div class="section-head"><div><h2>Destructive test: what if you cannot measure the same part twice?</h2><p>Pull-off, peel, cross-section, hardness: the test uses up the piece. So "the same part" becomes "another piece from the same batch", and any difference between those pieces is counted as gauge scatter.</p></div></div>
+        <div class="rec" id="destNote" hidden></div>
+        <div class="scen">
+          <div class="scen-label">What's happening on the shop floor? <span>Pick a situation.</span></div>
+          <div class="chips" data-scen="dest"></div>
+          <div class="scen-watch" data-watch="dest" hidden></div>
+        </div>
+        <div class="studybar">
+          <div class="group" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary" data-act="rerun">Run again (new readings)</button>
+            <button class="btn" data-act="truth">Show the truth</button>
+          </div>
+          <div class="info" id="destInfo"></div>
+        </div>
+        <div class="reveal-cover"><b>Results are hidden (trainer mode).</b> Ask the team first: what will this study show, and why? <button class="btn primary" data-act="reveal">Reveal results</button></div>
+        <div class="res">
+        <div id="destOut"></div>
+        <div class="chartbox" style="margin-top:14px"><div class="chart-title">What the study calls repeatability</div><div id="destSplit"></div></div>
+        <div class="truth" id="destTruth" hidden></div>
+        <div class="charts">
+          <div class="chartbox"><div class="chart-title">All readings by batch: each dot is a different piece</div><div class="canvas-box"><canvas id="dRC"></canvas></div><div class="cap" id="dRCap"></div></div>
+          <div class="chartbox"><div class="chart-title">Range chart: how much do pieces from one batch differ?</div><div class="canvas-box"><canvas id="dGC"></canvas></div><div class="cap" id="dGCap"></div></div>
+        </div>
+        <div class="legend" id="destLegend"></div>
+        <div class="diag" id="destDiag"></div>
+        <h3 style="margin:16px 0 0">Which design?</h3>
+        <div class="calcmp">
+          <div><h5>Batch shared by all (crossed)</h5>Each batch is split: every appraiser tests some pieces from every batch. The batch plays the part's role, and the study is analysed like a normal gauge R&amp;R.<ul style="margin:6px 0 0;padding-left:18px;color:var(--text-2)"><li>Needs batches big enough for appraisers × pieces</li><li>Separates appraisers well</li><li>Can show a batch × appraiser interaction</li></ul></div>
+          <div><h5>Own batches per appraiser (nested)</h5>Each appraiser tests their own batches. Used when a batch is too small to share, or appraisers work on different shifts or sites.<ul style="margin:6px 0 0;padding-left:18px;color:var(--text-2)"><li>Any batch size works</li><li>Appraiser differences are mixed with which batches each one got</li><li>No interaction term</li></ul></div>
+        </div>
+        <details class="calc"><summary>How was this calculated?</summary><div id="destCalc"></div></details>
+        <details class="calc"><summary>See the readings</summary><div class="tblwrap" id="destData"></div></details>
+        </div>
+      </section>
+
+      <!-- Attribute -->
+      <section class="card tabpanel" id="tab-attr" hidden>
+        <div class="section-head"><div><h2>Attribute agreement: do inspectors make the same accept / reject call?</h2><p>Go/no-go gauges and visual checks give a call, not a number. The study checks whether each inspector agrees with themselves, with the others, and with the right answer.</p></div></div>
+        <div class="scen">
+          <div class="scen-label">What's happening on the shop floor? <span>Pick a situation.</span></div>
+          <div class="chips" data-scen="attr"></div>
+          <div class="scen-watch" data-watch="attr" hidden></div>
+        </div>
+        <div class="studybar">
+          <div class="group" style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary" data-act="rerun">Run again (new calls)</button>
+            <button class="btn" data-act="truth">Show the truth</button>
+          </div>
+          <div class="info" id="attrInfo"></div>
+        </div>
+        <div class="reveal-cover"><b>Results are hidden (trainer mode).</b> Ask the team first: what will this study show, and why? <button class="btn primary" data-act="reveal">Reveal results</button></div>
+        <div class="res">
+        <div id="attrOut"></div>
+        <div class="chartbox" style="margin-top:14px"><div class="chart-title">Every call, parts sorted from smallest to largest</div><div class="canvas-box"><canvas id="aGC"></canvas></div><div class="cap" id="aGCap"></div></div>
+        <div class="charts">
+          <div class="chartbox"><div class="chart-title">Near the lower limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZL"></canvas></div></div>
+          <div class="chartbox"><div class="chart-title">Near the upper limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZU"></canvas></div></div>
+        </div>
+        <div class="legend" id="attrLegend"></div>
+        <div class="cap" id="aZCap" style="font-size:12px;color:var(--text-2);margin-top:4px"></div>
+        <div class="truth" id="attrTruth" hidden></div>
+        <div class="diag" id="attrDiag"></div>
+        <details class="calc"><summary>How was this calculated?</summary><div id="attrCalc"></div></details>
+        <details class="calc"><summary>See the calls</summary><div class="tblwrap" id="attrData"></div></details>
+        </div>
+      </section>
+
       <!-- Decisions -->
       <section class="card tabpanel" id="tab-dec" hidden>
         <div class="section-head"><div><h2>What the gauge does to your decisions</h2><p>What you measure = the parts' spread + the gauge's spread (+ its bias). Near the limits, the gauge decides whether a part passes.</p></div></div>
         <div class="field" style="margin-top:0">
+          <div class="field-head"><span class="name">Which gauge makes the call?</span></div>
+          <div class="seg" id="decGaugeSeg"><button data-v="var">Variable gauge (from gauge R&amp;R)</button><button data-v="attr">Attribute gauge (go/no-go)</button></div>
+        </div>
+        <div class="field">
           <div class="field-head"><span class="name">Guard band<span class="tech">acceptance limits inside the spec limits</span></span></div>
-          <div class="seg" id="gbSeg"><button data-v="0">None</button><button data-v="1">1 × gauge σ</button><button data-v="2">2 × gauge σ</button><button data-v="3">3 × gauge σ</button></div>
+          <div class="seg" id="gbSeg"><button data-v="0">None</button><button data-v="1">1 × <span class="gbu">gauge σ</span></button><button data-v="2">2 × <span class="gbu">gauge σ</span></button><button data-v="3">3 × <span class="gbu">gauge σ</span></button></div>
           <div class="hint" id="gbInfo"></div>
         </div>
         <div class="reveal-cover"><b>Results are hidden (trainer mode).</b> Ask the team first: what will this study show, and why? <button class="btn primary" data-act="reveal">Reveal results</button></div>
         <div class="res">
         <div class="tiles" id="decTiles"></div>
         <div class="canvas-box" style="margin-top:12px;"><canvas id="dC"></canvas></div>
-        <div class="legend"><span><i style="background:var(--accent)"></i>True parts</span><span><i style="background:var(--overall)"></i>What the gauge shows</span><span><i style="background:var(--critical)"></i>Spec limit</span><span><i style="background:rgba(154,103,0,0.7)"></i>Good parts rejected</span><span><i style="background:rgba(207,34,46,0.8)"></i>Bad parts accepted</span><span><i style="background:#9a6700"></i>Acceptance limit (guard band)</span></div>
+        <div class="legend" id="decLegend"></div>
         <div class="charts" style="margin-top:10px">
           <div class="chartbox"><div class="chart-title">Zoom on the lower limit</div><div class="canvas-box"><canvas id="dzL"></canvas></div></div>
           <div class="chartbox"><div class="chart-title">Zoom on the upper limit</div><div class="canvas-box"><canvas id="dzU"></canvas></div></div>
@@ -722,7 +827,7 @@
     </main>
   </div>
   <footer>
-    <p>The study types follow the approach of the AIAG MSA reference manual: gauge R&amp;R by the average and range method and by ANOVA, the range method as a quick check, bias by the independent sample method (t-test), linearity by regression with confidence bands, and stability on an X̄ and R chart. Settings that are our own choice: in ANOVA the interaction is pooled when its p-value is above 0.25 (the manual advises a high significance level but gives no value); stability limits come from the first 15 checks. Acceptance guidance: %GRR under 10% acceptable; 10% to 30% may be acceptable depending on the application, cost and customer; over 30% not acceptable; ndc 5 or more. Your customer's specific requirements come first.</p>
+    <p>The study types follow the approach of the AIAG MSA reference manual: gauge R&amp;R by the average and range method and by ANOVA, the range method as a quick check, bias by the independent sample method (t-test), linearity by regression with confidence bands, stability on an X̄ and R chart, destructive tests with batches in place of parts (crossed, or nested ANOVA when each appraiser has their own batches), and attribute agreement with kappa, effectiveness, miss rate and false alarm rate. Settings that are our own choice: in ANOVA the interaction is pooled when its p-value is above 0.25 (the manual advises a high significance level but gives no value); stability limits come from the first 15 checks. Acceptance guidance: %GRR under 10% acceptable; 10% to 30% may be acceptable depending on the application, cost and customer; over 30% not acceptable; ndc 5 or more. Attribute guidelines are listed in that tab. Your customer's specific requirements come first.</p>
     <p>Kattamaipu is independent and not affiliated with AIAG. Please use a licensed copy of the manual. This is a learning tool, not validated MSA software: use your own validated method for records and PPAP.</p>
   </footer>
 </div>
@@ -1012,22 +1117,25 @@ const MSA = (() => {
     if (sigmaM > 0) return Math.max(0, pnormAcc((ahi - x - bias) / sigmaM) - pnormAcc((alo - x - bias) / sigmaM));
     return (x + bias >= alo && x + bias <= ahi) ? 1 : 0;
   }
-  // alo/ahi: acceptance limits (spec limits tightened by a guard band); default = spec limits
-  function decisions(mu, sigmaP, sigmaM, bias, lsl, usl, alo = lsl, ahi = usl) {
+  // any gauge: pAcc(x) = probability that a part of true size x is accepted. Rates per 1,000 parts.
+  function decisionsWith(mu, sigmaP, lsl, usl, pAcc) {
     const n = 6000, lo = mu - 7 * sigmaP, hi = mu + 7 * sigmaP, h = (hi - lo) / n;
     let goodRej = 0, badAcc = 0, bad = 0;
     for (let s = 0; s < n; s++) {
       const x = lo + (s + 0.5) * h; // midpoint rule
       const f = Math.exp(-0.5 * sq((x - mu) / sigmaP)) / (sigmaP * Math.sqrt(2 * Math.PI));
-      const inSpec = x >= lsl && x <= usl;
-      let pAcc;
-      pAcc = pAccept(x, sigmaM, bias, alo, ahi);
-      if (inSpec) goodRej += f * (1 - pAcc); else { badAcc += f * pAcc; bad += f; }
+      const p = pAcc(x);
+      if (x >= lsl && x <= usl) goodRej += f * (1 - p); else { badAcc += f * p; bad += f; }
     }
     const k = h * 1000;
+    return { goodRejected: goodRej * k, badAccepted: badAcc * k, trulyBad: bad * k };
+  }
+  // alo/ahi: acceptance limits (spec limits tightened by a guard band); default = spec limits
+  function decisions(mu, sigmaP, sigmaM, bias, lsl, usl, alo = lsl, ahi = usl) {
+    const d = decisionsWith(mu, sigmaP, lsl, usl, x => pAccept(x, sigmaM, bias, alo, ahi));
     const tol = usl - lsl, sObs = Math.sqrt(sq(sigmaP) + sq(sigmaM));
     return {
-      goodRejected: goodRej * k, badAccepted: badAcc * k, trulyBad: bad * k,
+      ...d,
       cpTrue: tol / (6 * sigmaP), cpObs: tol / (6 * sObs),
       cpkTrue: Math.min(usl - mu, mu - lsl) / (3 * sigmaP),
       cpkObs: Math.min(usl - mu - bias, mu + bias - lsl) / (3 * sObs),
@@ -1120,7 +1228,151 @@ const MSA = (() => {
     return { xb, rg, L, sig, n, base: nb, avgAll: mean(xb), sigmaR: rb / ({ 2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326 }[n]) };
   }
 
-  return { tCrit, tTwoSidedP, genBias, biasStudy, genLinearity, linearity, genStability, stability, K1, K2, K3, D4, A2, NDC_K, ALPHA_INTERACTION, rng, qnorm, pnorm: pnormAcc, fUpper, generate, avgRange, anova, rangeMethod, verdict, decisions, pAccept, mean, range, roundTo };
+  // ---------- Destructive tests ----------
+  // A piece can be tested only once. Pieces from one batch stand in for "the same part".
+  // m.sigmaP: batch-to-batch σ; m.withinB: σ between pieces of one batch.
+  // crossed: every appraiser tests r pieces of every batch          → data[batch][appraiser][piece]
+  // nested:  every appraiser tests r pieces from b batches of their own → data[appraiser][batch][piece]
+  function genDestructive(m, design, b, a, r, seed) {
+    const R = rng(seed), sE = m.sigmaE * m.fixture, w = m.withinB || 0;
+    const pattern = a === 2 ? [-0.5, 0.5] : [-0.6, -0.2, 1.0];
+    const app = [];
+    for (let j = 0; j < a; j++) app.push(m.appMode === 'one' ? (j === a - 1 ? m.appSigma * 1.8 : 0) : m.appSigma * pattern[j] * 1.2);
+    const read = (batchMean, j) => roundTo(batchMean + w * R.n() + m.bias + app[j] + sE * R.n(), m.res);
+    let data, batches;
+    if (design === 'nested') {
+      batches = app.map(() => { const o = []; for (let i = 0; i < b; i++) o.push(m.mu + m.sigmaP * R.n()); return o; }); // each appraiser's own random batches
+      data = batches.map((bs, j) => bs.map(mu => { const o = []; for (let k = 0; k < r; k++) o.push(read(mu, j)); return o; }));
+    } else {
+      batches = pickParts(b, m.mu, m.sigmaP, 'range', R);
+      data = batches.map(mu => app.map((_, j) => { const o = []; for (let k = 0; k < r; k++) o.push(read(mu, j)); return o; }));
+    }
+    const appVar = a > 1 ? app.reduce((s, v) => s + sq(v - mean(app)), 0) / (a - 1) : 0;
+    const gaugeRep = Math.sqrt(sq(sE) + sq(m.res) / 12);
+    const t = { batches, app, gaugeRep, within: w, repeat: Math.sqrt(sq(gaugeRep) + sq(w)), repro: Math.sqrt(appVar), sigmaP: m.sigmaP };
+    t.grrGauge = Math.sqrt(sq(gaugeRep) + appVar);
+    t.grrStudy = Math.sqrt(sq(t.repeat) + appVar);
+    // the gauge's own share of what you would see on production pieces (batch-to-batch + within-batch)
+    t.pctGauge = 100 * t.grrGauge / Math.sqrt(sq(t.grrGauge) + sq(m.sigmaP) + sq(w));
+    t.pctStudy = 100 * t.grrStudy / Math.sqrt(sq(t.grrStudy) + sq(m.sigmaP));
+    return { data, truth: t };
+  }
+  // Nested ANOVA: appraiser, batch within appraiser, error. data[appraiser][batch][piece]
+  function nestedAnova(data, tol) {
+    const a = data.length, b = data[0].length, r = data[0][0].length;
+    const all = data.flat(2), N = all.length, gm = mean(all);
+    const am = data.map(d => mean(d.flat()));
+    const bm = data.map(d => d.map(mean));
+    const ssA = b * r * am.reduce((s, v) => s + sq(v - gm), 0);
+    let ssB = 0, ssE = 0;
+    for (let j = 0; j < a; j++) for (let i = 0; i < b; i++) { ssB += r * sq(bm[j][i] - am[j]); for (const v of data[j][i]) ssE += sq(v - bm[j][i]); }
+    const ssT = all.reduce((s, v) => s + sq(v - gm), 0);
+    const dfA = a - 1, dfB = a * (b - 1), dfE = a * b * (r - 1);
+    const msA = ssA / dfA, msB = ssB / dfB, msE = ssE / dfE;
+    const fA = msB > 0 ? msA / msB : Infinity, fB = msE > 0 ? msB / msE : Infinity;
+    const table = [
+      { src: 'Appraiser', df: dfA, ss: ssA, ms: msA, f: fA, p: fUpper(fA, dfA, dfB) },
+      { src: 'Batch (within appraiser)', df: dfB, ss: ssB, ms: msB, f: fB, p: fUpper(fB, dfB, dfE) },
+      { src: 'Repeatability', df: dfE, ss: ssE, ms: msE },
+      { src: 'Total', df: N - 1, ss: ssT },
+    ];
+    const vRep = msE, vPart = Math.max(0, (msB - msE) / r), vApp = Math.max(0, (msA - msB) / (b * r));
+    const vGRR = vRep + vApp, vTot = vGRR + vPart, sd = Math.sqrt;
+    const ev = sd(vRep), av = sd(vApp), grr = sd(vGRR), pv = sd(vPart), tv = sd(vTot);
+    const pct = x => tv > 0 ? 100 * x / tv : NaN, pctT = x => tol > 0 ? 100 * 6 * x / tol : NaN;
+    return {
+      method: 'nested', a, b, r, table, ev, av, repro: av, grr, pv, tv,
+      contrib: { rep: 100 * vRep / vTot, app: 100 * vApp / vTot, grr: 100 * vGRR / vTot, part: 100 * vPart / vTot },
+      pctEV: pct(ev), pctAV: pct(av), pctRepro: pct(av), pctGRR: pct(grr), pctPV: pct(pv),
+      tolEV: pctT(ev), tolAV: pctT(av), tolGRR: pctT(grr), tolPV: pctT(pv),
+      ndc: grr > 0 ? Math.max(1, Math.floor(NDC_K * pv / grr)) : Infinity,
+    };
+  }
+
+  // ---------- Attribute agreement (accept / reject) ----------
+  // probability that an appraiser accepts a part of true size x. shift > 0: strict (limits pulled in);
+  // g: σ of the grey zone (how uncertain the call is near a limit)
+  function attrPAccept(x, lsl, usl, shift, g) {
+    const lo = lsl + shift, hi = usl - shift;
+    if (g > 0) return Math.max(0, pnormAcc((hi - x) / g) - pnormAcc((lo - x) / g));
+    return x >= lo && x <= hi ? 1 : 0;
+  }
+  // appraiser traits from the shop-floor setting: the last appraiser differs
+  function attrTraits(m, a, lsl, usl) {
+    const g = m.grey || 0, tol = usl - lsl, s0 = g + 0.03 * tol;
+    const tr = []; for (let j = 0; j < a; j++) tr.push({ shift: 0, g });
+    const L = tr[a - 1];
+    if (m.attrApp === 'strict') L.shift = s0;
+    else if (m.attrApp === 'lenient') L.shift = -s0;
+    else if (m.attrApp === 'incons') L.g = 3 * g + 0.02 * tol;
+    return tr;
+  }
+  // sel: 'mix' (clearly good, clearly bad, and about half near the limits), 'prod' (straight from production), 'border' (only near the limits)
+  function attrParts(n, sel, mu, sigmaP, lsl, usl, R) {
+    const T = (usl - lsl) / 2, out = [];
+    const near = () => { const lim = R.u() < 0.5 ? lsl : usl; return lim + (2 * R.u() - 1) * 0.25 * T; };
+    if (sel === 'prod') for (let i = 0; i < n; i++) out.push(mu + sigmaP * R.n());
+    else if (sel === 'border') for (let i = 0; i < n; i++) out.push(near());
+    else {
+      const nGood = Math.round(0.35 * n), nBad = Math.round(0.15 * n);
+      for (let i = 0; i < nGood; i++) out.push(lsl + 0.3 * T + R.u() * (2 * T - 0.6 * T));
+      for (let i = 0; i < nBad; i++) out.push(i % 2 ? usl + T * (0.3 + 0.5 * R.u()) : lsl - T * (0.3 + 0.5 * R.u()));
+      while (out.length < n) out.push(near());
+    }
+    for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+    return out;
+  }
+  function genAttribute(m, n, a, r, sel, lsl, usl, seed) {
+    const R = rng(seed), traits = attrTraits(m, a, lsl, usl);
+    const parts = attrParts(n, sel, m.mu, m.sigmaP, lsl, usl, R);
+    const p = parts.map(x => traits.map(t => attrPAccept(x, lsl, usl, t.shift, t.g)));
+    const d = p.map(row => row.map(q => { const o = []; for (let k = 0; k < r; k++) o.push(R.u() < q ? 1 : 0); return o; }));
+    const ref = parts.map(x => (x >= lsl && x <= usl) ? 1 : 0);
+    return { d, ref, truth: { parts, traits, p } };
+  }
+  // Cohen's kappa from paired 0/1 decisions
+  function cohen(pairs) {
+    const t = [[0, 0], [0, 0]]; pairs.forEach(([u, v]) => t[u][v]++);
+    const N = pairs.length, po = (t[0][0] + t[1][1]) / N;
+    const a1 = (t[1][0] + t[1][1]) / N, b1 = (t[0][1] + t[1][1]) / N;
+    const pe = a1 * b1 + (1 - a1) * (1 - b1);
+    return { k: 1 - pe > 1e-12 ? (po - pe) / (1 - pe) : NaN, t, po, pe, N };
+  }
+  // Fleiss' kappa: counts[i] = number of "accept" calls out of m calls on part i
+  function fleiss(counts, m) {
+    const N = counts.length;
+    const P = counts.map(c => (c * c + (m - c) * (m - c) - m) / (m * (m - 1)));
+    const Pbar = mean(P), p1 = counts.reduce((s, c) => s + c, 0) / (N * m), pe = p1 * p1 + (1 - p1) * (1 - p1);
+    return { k: 1 - pe > 1e-12 ? (Pbar - pe) / (1 - pe) : NaN, Pbar, pe };
+  }
+  function attributeStudy(d, ref) {
+    const n = d.length, a = d[0].length, r = d[0][0].length;
+    const nBad = ref.filter(v => v === 0).length, nGood = n - nBad;
+    const apps = [];
+    for (let j = 0; j < a; j++) {
+      let within = 0, vsRef = 0, correct = 0, miss = 0, fa = 0; const pairs = [], counts = [];
+      for (let i = 0; i < n; i++) {
+        const c = d[i][j]; const s = c.reduce((u, v) => u + v, 0); counts.push(s);
+        const same = s === 0 || s === r; if (same) within++; if (same && c[0] === ref[i]) vsRef++;
+        c.forEach(v => { pairs.push([v, ref[i]]); if (v === ref[i]) correct++; else if (ref[i] === 0) miss++; else fa++; });
+      }
+      apps.push({
+        within: within / n, vsRef: vsRef / n, eff: correct / (n * r),
+        miss: nBad ? miss / (nBad * r) : NaN, fa: nGood ? fa / (nGood * r) : NaN, missN: miss, faN: fa,
+        kRef: cohen(pairs), kWithin: r > 1 ? fleiss(counts, r) : { k: NaN },
+      });
+    }
+    const pairK = [];
+    for (let j = 0; j < a; j++) for (let l = j + 1; l < a; l++) {
+      const pairs = []; for (let i = 0; i < n; i++) for (let k = 0; k < r; k++) pairs.push([d[i][j][k], d[i][l][k]]);
+      pairK.push({ j, l, ...cohen(pairs) });
+    }
+    let allAgree = 0, allRef = 0;
+    for (let i = 0; i < n; i++) { const f = d[i].flat(), s = f.reduce((u, v) => u + v, 0); if (s === 0 || s === f.length) { allAgree++; if (f[0] === ref[i]) allRef++; } }
+    return { n, a, r, nBad, nGood, apps, pairK, allAgree: allAgree / n, allRef: allRef / n };
+  }
+
+  return { genDestructive, nestedAnova, attrPAccept, attrTraits, genAttribute, attributeStudy, cohen, fleiss, decisionsWith, tCrit, tTwoSidedP, genBias, biasStudy, genLinearity, linearity, genStability, stability, K1, K2, K3, D4, A2, NDC_K, ALPHA_INTERACTION, rng, qnorm, pnorm: pnormAcc, fUpper, generate, avgRange, anova, rangeMethod, verdict, decisions, pAccept, mean, range, roundTo };
 })();
 </script>
 <script>
@@ -1153,18 +1405,25 @@ const MSA = (() => {
     wall:   { g: 'Injection moulding', label: 'Wall thickness, pointed micrometer (2.00 ± 0.10 mm)', part: 'Wall thickness', unit: 'mm', nominal: 2.0, T: 0.1, res: 0.001, mpe: 0.003, sigmaP: 0.022, sigmaE: 0.003, appSigma: 0.002, interSigma: 0.003, why: 'The measuring point on a moulded wall is easy to miss: watch the interaction.' },
     boss:   { g: 'Die casting', label: 'Cast boss height, height gauge (12.00 ± 0.15 mm)', part: 'Boss height', unit: 'mm', nominal: 12, T: 0.15, res: 0.01, mpe: 0.03, sigmaP: 0.035, sigmaE: 0.006, appSigma: 0.005, interSigma: 0, why: 'Cast surfaces are rough: readings depend on where the probe lands.' },
     cmm:    { g: 'CMM', label: 'Hole centre distance, CMM program (45.00 ± 0.05 mm)', part: 'Hole centre distance', unit: 'mm', nominal: 45, T: 0.05, res: 0.0001, mpe: 0.003, sigmaP: 0.010, sigmaE: 0.0012, appSigma: 0, interSigma: 0, why: 'The CMM runs a program, so the appraiser has little effect: reproducibility is close to zero. Part loading and fixturing still matter.' },
+    // destructive tests: withinB = σ between pieces of one batch (the "same part" is really another piece)
+    case:   { g: 'Destructive tests', destr: true, label: 'Case depth, cross-section (1.00 ± 0.20 mm)', part: 'Case depth', unit: 'mm', nominal: 1.0, T: 0.2, res: 0.01, mpe: 0.02, sigmaP: 0.05, sigmaE: 0.012, appSigma: 0.01, interSigma: 0, withinB: 0.015, why: 'Each sample is cut, polished and etched, then scrapped. Pieces from one heat-treat load stand in for "the same part".' },
+    hard:   { g: 'Destructive tests', destr: true, label: 'Surface hardness, Rockwell C (60 ± 2 HRC)', part: 'Surface hardness', unit: 'HRC', nominal: 60, T: 2, res: 0.1, mpe: 1, sigmaP: 0.5, sigmaE: 0.2, appSigma: 0.15, interSigma: 0, withinB: 0.25, why: 'Each test leaves a dent, so the same spot cannot be tested twice. Spots close together, or parts from one load, stand in for repeats.' },
+    plate:  { g: 'Destructive tests', destr: true, label: 'Plating thickness, cross-section (10 ± 3 µm)', part: 'Plating thickness', unit: 'µm', nominal: 10, T: 3, res: 0.1, mpe: 0.3, sigmaP: 0.7, sigmaE: 0.2, appSigma: 0.15, interSigma: 0, withinB: 0.3, why: 'A cross-section destroys the part. Parts plated side by side on one rack stand in for repeats.' },
+    peel:   { g: 'Destructive tests', destr: true, label: 'Adhesive peel strength (25 ± 6 N)', part: 'Peel strength', unit: 'N', nominal: 25, T: 6, res: 0.1, mpe: 0.5, sigmaP: 1.4, sigmaE: 0.4, appSigma: 0.3, interSigma: 0, withinB: 0.9, why: 'Peel strength scatters from strip to strip of the same roll: here the material, not the tester, often dominates the study.' },
   };
 
   // ---------- State ----------
   const S = {
     preset: 'crimp', partName: '', unit: 'mm', nominal: 0, T: 0, res: 0, mpe: 0, dec: 3, formSigma: 0,
-    m: { sigmaP: 0, sigmaE: 0, fixture: 1, formFrac: 0, appSigma: 0, appMode: 'all', interSigma: 0, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0 },
+    m: { sigmaP: 0, sigmaE: 0, fixture: 1, formFrac: 0, appSigma: 0, appMode: 'all', interSigma: 0, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: 0, grey: 0, attrApp: 'same' },
     p: 10, a: 3, r: 3, selection: 'range', method: 'xr', seed: 11, truthShown: false, scen: null,
     biasRef: null, biasN: 10, linN: 10, stabK: 25, stabN: 3, gb: 0, trainer: false, revealed: false,
     tab: 'basics', learn: -1, guessed: {},
+    dDesign: 'crossed', dB: 10, dBn: 5, dA: 3, dR: 3, attrN: 50, attrA: 3, attrR: 3, attrSel: 'mix', decGauge: 'var',
   };
   let G = null, XR = null, AN = null, RES = null; // current gauge R&R study
   let BS = null, BT = null, LS = null, LT = null, LREFS = null, SS = null, ST = null; // location studies
+  let DG = null, DS = null, AG = null, AS = null; // destructive and attribute studies
 
   // ---------- Formatting ----------
   const decOf = v => { if (!(v > 0)) return 3; return Math.max(0, Math.min(6, Math.ceil(-Math.log10(v) - 1e-9))); };
@@ -1191,6 +1450,14 @@ const MSA = (() => {
     rbar: 'R̄ (R-bar): the average range within a check: the gauge\'s short-term scatter.',
     signals: 'Signals: a point beyond a control limit, 7 in a row on one side, or 7 in a row going one way.',
     cp: 'Cp: tolerance divided by 6 × the spread. Higher is better; 1.33 is a common minimum.',
+    destRep: 'In a destructive study, "repeatability" is the gauge\'s own scatter plus the difference between pieces of one batch. The study cannot tell them apart.',
+    batch: 'Batch-to-batch variation: how much the batches really differ. It plays the part variation\'s role.',
+    kappa: 'Kappa: agreement after removing the agreement you would get by chance. 1 = perfect, 0 = no better than chance. Above 0.75 is good; below 0.40 is poor.',
+    within: 'Agrees with self: share of parts where the inspector made the same call in every trial.',
+    vsref: 'Agrees with the reference: share of parts where every call by the inspector was the right one.',
+    eff: 'Effectiveness: share of all calls that were right.',
+    miss: 'Miss rate: share of calls on bad parts that accepted them. These are escapes to the customer.',
+    fa: 'False alarm rate: share of calls on good parts that rejected them. These are scrap and rework you pay for.',
   };
   const gl = (k, text) => `<span class="gl" tabindex="0" data-g="${k}">${text}</span>`;
   const vcls = c => c === 'good' ? 'v-good' : c === 'warn' ? 'v-warn' : c === 'bad' ? 'v-bad' : 'v-none';
@@ -1200,28 +1467,32 @@ const MSA = (() => {
   // tabs: which studies each cause affects (others are faded)
   const ALL = ['basics', 'grr', 'bias', 'lin', 'stab', 'dec'];
   const FIELDS = [
-    { k: 'sigmaP', tabs: ['prep', 'grr', 'lin', 'dec'], name: 'Part-to-part variation', tech: 'σ process', min: T => T / 200, max: T => T / 1.5, hint: 'How much the parts really differ. A very capable process has little variation, which makes %GRR against total variation look worse.' },
-    { k: 'sigmaE', tabs: ALL, name: 'Gauge repeatability, good condition', tech: 'σ equipment', min: () => 0, max: T => T / 5, hint: 'Scatter when one person measures the same part again and again on a gauge in good condition.' },
-    { k: 'fixture', tabs: ALL, seg: [[1, 'Good'], [1.8, 'Worn'], [3, 'Loose']], name: 'Fixture and clamping', tech: '→ repeatability', hint: 'A worn anvil, loose clamp or poor part location adds scatter to every reading.' },
+    { k: 'sigmaP', tabs: ['prep', 'grr', 'lin', 'dec', 'dest', 'attr', 'decA'], name: 'Part-to-part variation', tech: 'σ process', min: T => T / 200, max: T => T / 1.5, hint: 'How much the parts really differ (in a destructive test: how much the batches differ). A very capable process has little variation, which makes %GRR against total variation look worse.' },
+    { k: 'withinB', tabs: ['dest'], name: 'Pieces in one batch differ', tech: '→ counted as repeatability', min: () => 0, max: T => T / 4, hint: 'Each piece can be tested only once, so "the same part" is really another piece from the same batch. Any difference between those pieces looks like gauge scatter.' },
+    { k: 'sigmaE', tabs: ALL.concat('dest'), name: 'Gauge repeatability, good condition', tech: 'σ equipment', min: () => 0, max: T => T / 5, hint: 'Scatter when one person measures the same part again and again on a gauge in good condition.' },
+    { k: 'fixture', tabs: ALL.concat('dest'), seg: [[1, 'Good'], [1.8, 'Worn'], [3, 'Loose']], name: 'Fixture and clamping', tech: '→ repeatability', hint: 'A worn anvil, loose clamp or poor part location adds scatter to every reading.' },
     { k: 'formFrac', tabs: ['grr'], seg: [[0, 'None'], [0.3, 'Some parts'], [0.6, 'Many parts']], name: 'Part form: burrs, ovality, taper', tech: '→ repeatability', hint: 'On a part with form error, the reading depends on exactly where you measure. (Masters for bias, linearity and stability are assumed to have good form.)' },
-    { k: 'appSigma', tabs: ['grr', 'dec'], name: 'Method differs between appraisers', tech: '→ reproducibility', min: () => 0, max: T => T / 5, hint: 'Different technique, force or reading habit. A clear method in the work instruction and training reduce it.', sub: 'appMode' },
+    { k: 'appSigma', tabs: ['grr', 'dec', 'dest'], name: 'Method differs between appraisers', tech: '→ reproducibility', min: () => 0, max: T => T / 5, hint: 'Different technique, force or reading habit. A clear method in the work instruction and training reduce it.', sub: 'appMode' },
     { k: 'interSigma', tabs: ['grr', 'dec'], name: 'Measuring point not clear', tech: '→ interaction', min: () => 0, max: T => T / 6, hint: 'Each appraiser measures some parts at a slightly different place. Average and range cannot separate this; ANOVA can.' },
     { k: 'tempSigma', tabs: ['grr', 'bias', 'lin', 'stab', 'dec'], name: 'Temperature not settled', tech: '→ shifts between rounds and days', min: () => 0, max: T => T / 6, hint: 'Parts measured straight off the machine, or a gauge near a window. Readings shift a little from round to round and day to day.' },
     { k: 'bias', tabs: ['basics', 'grr', 'bias', 'lin', 'stab', 'dec'], name: 'Gauge zero is off', tech: '→ bias', min: T => -T / 2, max: T => T / 2, hint: 'Every reading shifts by the same amount. Compare what the gauge R&R study and the bias study do with this.' },
     { k: 'linSlope', tabs: ['grr', 'bias', 'lin'], name: 'Gauge reads differently at the ends of its range', tech: '→ linearity', min: () => -0.3, max: () => 0.3, dec: 3, unitless: true, hint: 'Uneven wear or a worn spindle: the error changes with size. 0.10 means the bias grows by 0.1 for every 1 unit away from the nominal.' },
     { k: 'drift', tabs: ['stab'], name: 'Zero drifts over the weeks', tech: '→ stability (average)', min: T => -T / 3, max: T => T / 3, hint: 'Total shift of the zero from the first to the last stability check: wear, a loose setting, a dropped gauge.' },
     { k: 'wear', tabs: ['stab'], seg: [[0, 'Stays the same'], [1, 'Slowly worse'], [3, 'Clearly worse']], name: 'Gauge condition over the weeks', tech: '→ stability (range)', hint: 'Scatter grows as the contact faces wear or dirt builds up.' },
+    { k: 'grey', tabs: ['attr', 'decA'], name: 'Grey zone of the accept / reject call', tech: 'σ of the call near a limit', min: () => 0, max: T => T / 4, hint: 'Near a limit the call is uncertain: gauge wear, how hard the gauge is pushed, lighting for a visual check. Parts well inside or well outside are always called right.' },
+    { k: 'attrApp', str: true, tabs: ['attr', 'decA'], seg: [['same', 'All alike'], ['strict', 'One strict'], ['lenient', 'One lenient'], ['incons', 'One inconsistent']], name: 'How the inspectors make the call', tech: '→ appraiser traits', hint: 'Strict: rejects parts just inside the limits. Lenient: accepts parts just outside. Inconsistent: a wider grey zone, so the same part gets different calls. The last inspector is the one who differs.' },
   ];
   const fdec = f => f.dec != null ? f.dec : S.dec + 1;
   // only the causes that affect the open tab are shown; "Show all causes" lists the rest, faded
+  const relKey = () => S.tab === 'dec' && S.decGauge === 'attr' ? 'decA' : S.tab;
   function setRel(f) {
-    const rel = f.tabs.includes(S.tab), el = $('f-' + f.k);
+    const rel = f.tabs.includes(relKey()), el = $('f-' + f.k);
     el.classList.toggle('dim', !rel); el.hidden = !rel && !S.showAll;
   }
   function syncShowAll() {
-    const n = FIELDS.filter(f => !f.tabs.includes(S.tab)).length, b = $('showAll');
+    const n = FIELDS.filter(f => !f.tabs.includes(relKey())).length, b = $('showAll');
     b.hidden = n === 0; b.textContent = S.showAll ? 'Show only the causes that affect this study' : `Show all causes (${n} more, no effect here)`;
-    $('floorNone').hidden = FIELDS.some(f => f.tabs.includes(S.tab)) || S.showAll;
+    $('floorNone').hidden = FIELDS.some(f => f.tabs.includes(relKey())) || S.showAll;
   }
   function buildFloor() {
     const box = $('floorFields'); box.innerHTML = '';
@@ -1237,7 +1508,7 @@ const MSA = (() => {
       h += `<div class="hint">${f.hint}</div>`;
       d.innerHTML = h; box.appendChild(d);
       if (f.seg) {
-        $('seg-' + f.k).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.m[f.k] = parseFloat(b.dataset.v); clearScen(); syncFloor(); update(); });
+        $('seg-' + f.k).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.m[f.k] = f.str ? b.dataset.v : parseFloat(b.dataset.v); clearScen(); syncFloor(); update(); });
       } else {
         $('sl-' + f.k).addEventListener('input', e => { S.m[f.k] = parseFloat(e.target.value); clearScen(); syncFloor(f.k); update(); });
         $('num-' + f.k).addEventListener('change', e => {
@@ -1273,7 +1544,7 @@ const MSA = (() => {
     sel.addEventListener('change', () => { S.scenPreset = null; loadPreset(sel.value); clearScen(); update(); });
   }
   function floorDefaults(p) {
-    return { sigmaP: p.sigmaP, sigmaE: p.sigmaE, fixture: 1, formFrac: 0, appSigma: p.appSigma, appMode: 'all', interSigma: p.interSigma, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0 };
+    return { sigmaP: p.sigmaP, sigmaE: p.sigmaE, fixture: 1, formFrac: 0, appSigma: p.appSigma, appMode: 'all', interSigma: p.interSigma, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: p.withinB || 0, grey: p.T / 60, attrApp: 'same' };
   }
   function loadPreset(key) {
     const p = PRESETS[key]; S.preset = key;
@@ -1299,7 +1570,7 @@ const MSA = (() => {
     if (res > T) { err.hidden = false; err.textContent = 'The resolution is larger than the tolerance: this gauge cannot measure this part.'; return false; }
     err.hidden = true;
     const scale = T / S.T;
-    if (isFinite(scale) && Math.abs(scale - 1) > 1e-12) for (const k of ['sigmaP', 'sigmaE', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'drift']) S.m[k] *= scale;
+    if (isFinite(scale) && Math.abs(scale - 1) > 1e-12) for (const k of ['sigmaP', 'sigmaE', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'drift', 'withinB', 'grey']) S.m[k] *= scale;
     if (isFinite(scale)) S.formSigma *= scale;
     if (nom !== S.nominal) S.biasRef = null;
     S.nominal = nom; S.T = T; S.res = res; S.dec = decOf(res > 0 ? res : T / 100);
@@ -1320,7 +1591,32 @@ const MSA = (() => {
       batch: 'Parts from one batch are very similar. The gauge looks worse against total variation than it is.',
       extremes: 'Only the smallest and largest parts. The part variation is inflated, so the gauge looks better than it is.',
     }[S.selection];
+    syncDA();
   }
+  function syncDA() {
+    const nested = S.dDesign === 'nested', db = $('dB');
+    db.innerHTML = ''; for (let i = nested ? 3 : 5; i <= (nested ? 8 : 10); i++) db.add(new Option(i, i));
+    db.value = nested ? S.dBn : S.dB; $('dA').value = S.dA; $('dR').value = S.dR;
+    $('dBLab').textContent = nested ? 'Batches per appraiser' : 'Batches';
+    setSeg($('dDesSeg'), S.dDesign);
+    const nb = nested ? S.dBn : S.dB;
+    $('dDesHint').textContent = nested ? 'Each appraiser tests pieces from their own batches. Use it when a batch is too small to share.' : 'Every appraiser tests pieces from every batch. Each batch must hold enough similar pieces for everyone.';
+    $('dSizeHint').textContent = nested ? `${S.dA} appraisers × ${nb} batches × ${S.dR} pieces = ${S.dA * nb * S.dR} pieces, each tested once. Each batch needs ${S.dR} similar pieces.` : `${nb} batches × ${S.dA} appraisers × ${S.dR} pieces = ${nb * S.dA * S.dR} pieces, each tested once. Each batch needs ${S.dA * S.dR} similar pieces.`;
+    $('aN').value = S.attrN; $('aA').value = S.attrA; $('aR').value = S.attrR; setSeg($('aSelSeg'), S.attrSel);
+    $('aSelHint').textContent = {
+      mix: 'Right: clearly good, clearly bad, and plenty of parts close to both limits, on both sides. About a third or more should be bad.',
+      prod: 'Parts as they come off the line: nearly all clearly good. Everyone agrees, and the study proves nothing about the calls that matter.',
+      border: 'Only parts close to the limits. The hardest test there is: every inspector looks worse than in daily work.',
+    }[S.attrSel];
+  }
+  $('dDesSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.dDesign = b.dataset.v; clearScen(); syncDA(); update(); });
+  $('dB').addEventListener('change', e => { if (S.dDesign === 'nested') S.dBn = +e.target.value; else S.dB = +e.target.value; clearScen(); syncDA(); update(); });
+  $('dA').addEventListener('change', e => { S.dA = +e.target.value; clearScen(); syncDA(); update(); });
+  $('dR').addEventListener('change', e => { S.dR = +e.target.value; clearScen(); syncDA(); update(); });
+  $('aN').addEventListener('change', e => { S.attrN = +e.target.value; clearScen(); update(); });
+  $('aA').addEventListener('change', e => { S.attrA = +e.target.value; clearScen(); update(); });
+  $('aR').addEventListener('change', e => { S.attrR = +e.target.value; clearScen(); update(); });
+  $('aSelSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.attrSel = b.dataset.v; clearScen(); syncDA(); update(); });
   $('nParts').addEventListener('change', e => { S.p = +e.target.value; clearScen(); update(); });
   $('nApp').addEventListener('change', e => { S.a = +e.target.value; clearScen(); update(); });
   $('nTrials').addEventListener('change', e => { S.r = +e.target.value; clearScen(); update(); });
@@ -1345,6 +1641,11 @@ const MSA = (() => {
     LREFS = [-0.8, -0.4, 0, 0.4, 0.8].map(f => S.nominal + f * S.T);
     const gl = MSA.genLinearity(lm, LREFS, S.linN, S.seed + 202); LT = gl.truth; LS = MSA.linearity(LREFS, gl.reads, S.m.sigmaP); LS.reads = gl.reads;
     const gs = MSA.genStability(lm, S.nominal, S.stabK, S.stabN, S.seed + 310); ST = gs.truth; SS = MSA.stability(gs.sub, 15); SS.sub = gs.sub;
+    const nested = S.dDesign === 'nested';
+    DG = MSA.genDestructive(lm, S.dDesign, nested ? S.dBn : S.dB, S.dA, S.dR, S.seed + 404);
+    DS = nested ? MSA.nestedAnova(DG.data, 2 * S.T) : MSA.anova(DG.data, 2 * S.T);
+    AG = MSA.genAttribute(lm, S.attrN, S.attrA, S.attrR, S.attrSel, S.nominal - S.T, S.nominal + S.T, S.seed + 505);
+    AS = MSA.attributeStudy(AG.d, AG.ref);
   }
 
   // ---------- Canvas helpers ----------
@@ -1699,6 +2000,7 @@ const MSA = (() => {
     if (v1 !== v2) items.push(['', 'The two percentages disagree: that is normal', `%GRR against total variation (${pc(r.pctGRR)}) answers "can we use it for SPC and process improvement?". %GRR against tolerance (${pc(r.tolGRR)}) answers "can we use it to sort good from bad parts?". Judge the gauge against what you use it for.`]);
     if (!isA && !AN.pooled) items.push(['w', 'Switch to ANOVA', 'The average and range method cannot show an appraiser × part interaction; it hides inside the other numbers. ANOVA on the same readings finds it.']);
     if (S.truthShown && Math.abs(S.m.bias) > 0) items.push(['b', 'The study could not see the wrong zero', 'A constant offset moves every reading the same way, so it never shows up as scatter. Bias needs its own study against a traceable master, plus a check of the gauge\'s calibration status.']);
+    if (PRESETS[S.preset].destr) items.unshift(['w', 'This is a destructive test', 'A normal gauge R&R measures the same part again. A destructive test cannot, so use the Destructive tab: pieces from one batch stand in for the same part.']);
     items.push(['', 'When to repeat the study', 'New gauge, after a repair or adjustment, a fixture or method change, a new group of appraisers, or a customer complaint that involves measurement.']);
     $('diagOut').innerHTML = '<h3 style="margin:14px 0 0">It failed, now what? Reading the result</h3>' + items.map(([c, t, s]) => `<div class="item ${c}"><b>${t}</b><span>${s}</span></div>`).join('');
   }
@@ -1757,35 +2059,50 @@ const MSA = (() => {
   }
 
   // ---------- D: decisions ----------
+  // variable gauge: reading = part + bias + gauge error (σ from gauge R&R truth)
+  // attribute gauge: each inspector's true accept curve (grey zone, strict/lenient), work shared equally
   function renderDecisions() {
-    const sm = G.truth.grr, sp = S.m.sigmaP, mu = S.nominal, b = S.m.bias;
-    const lsl = mu - S.T, usl = mu + S.T, g = (S.gb || 0) * sm, alo = lsl + g, ahi = usl - g;
-    const d = MSA.decisions(mu, sp, sm, b, lsl, usl, alo, ahi);
-    const d0 = S.gb ? MSA.decisions(mu, sp, sm, b, lsl, usl) : d;
+    const attr = S.decGauge === 'attr';
+    const sp = S.m.sigmaP, mu = S.nominal, lsl = mu - S.T, usl = mu + S.T;
+    const traits = attr ? MSA.attrTraits(S.m, S.attrA, lsl, usl) : null;
+    const sm = attr ? S.m.grey : G.truth.grr, b = attr ? 0 : S.m.bias;
+    const g = (S.gb || 0) * sm, alo = lsl + g, ahi = usl - g;
+    const pAccAt = (x, lo, hi) => attr ? traits.reduce((s2, t) => s2 + MSA.attrPAccept(x, lo, hi, t.shift, t.g), 0) / traits.length : MSA.pAccept(x, sm, b, lo, hi);
+    const pAcc = v => pAccAt(v, alo, ahi);
+    const d = attr ? MSA.decisionsWith(mu, sp, lsl, usl, pAcc) : MSA.decisions(mu, sp, sm, b, lsl, usl, alo, ahi);
+    const d0 = S.gb ? MSA.decisionsWith(mu, sp, lsl, usl, v => pAccAt(v, lsl, usl)) : d;
     const f1 = v => !isFinite(v) ? '—' : v < 0.05 ? '< 0.1' : v.toFixed(v < 10 ? 1 : 0);
-    setSeg($('gbSeg'), S.gb || 0);
-    $('gbInfo').innerHTML = S.gb ? `Accept only between <b>${fmt(alo, 1)}</b> and <b>${fmt(ahi, 1)}</b> (each limit moved in by ${S.gb} × gauge σ = ${fmtU(g)}). Without the guard band: ${f1(d0.goodRejected)} good rejected, ${f1(d0.badAccepted)} bad accepted per 1,000.` : 'Accept parts that read inside the spec limits.';
-    $('decTiles').innerHTML = `
-      <div class="tile"><div class="k">True ${gl('cp', 'Cp')}</div><div class="v">${d.cpTrue.toFixed(2)}</div><div class="d">the parts as they really are</div></div>
-      <div class="tile"><div class="k">Cp you would measure</div><div class="v">${d.cpObs.toFixed(2)}</div><div class="d">parts + gauge variation${Math.abs(b) > 0 ? `; Cpk ${d.cpkObs.toFixed(2)} with the bias` : ''}</div></div>
-      <div class="tile"><div class="k"><i style="background:var(--warning)"></i>Good parts rejected</div><div class="v" style="color:var(--warning)">${f1(d.goodRejected)}</div><div class="d">per 1,000 parts: scrap and rework you pay for</div></div>
+    setSeg($('gbSeg'), S.gb || 0); setSeg($('decGaugeSeg'), S.decGauge);
+    document.querySelectorAll('.gbu').forEach(e => { e.textContent = attr ? 'grey zone σ' : 'gauge σ'; });
+    $('gbInfo').innerHTML = S.gb ? `Accept only between <b>${fmt(alo, 1)}</b> and <b>${fmt(ahi, 1)}</b> (each limit moved in by ${S.gb} × ${attr ? 'the grey zone σ' : 'gauge σ'} = ${fmtU(g)}${attr ? ': a tighter go/no-go gauge or stricter limit samples' : ''}). Without the guard band: ${f1(d0.goodRejected)} good rejected, ${f1(d0.badAccepted)} bad accepted per 1,000.` : (attr ? 'The go/no-go gauge or limit sample sits on the spec limits.' : 'Accept parts that read inside the spec limits.');
+    const rej = `<div class="tile"><div class="k"><i style="background:var(--warning)"></i>Good parts rejected</div><div class="v" style="color:var(--warning)">${f1(d.goodRejected)}</div><div class="d">per 1,000 parts: scrap and rework you pay for</div></div>
       <div class="tile"><div class="k"><i style="background:var(--critical)"></i>Bad parts accepted</div><div class="v" style="color:var(--critical)">${f1(d.badAccepted)}</div><div class="d">per 1,000 parts (of ${f1(d.trulyBad)} truly bad): escapes</div></div>`;
+    if (attr) {
+      const avg = k => { const v = AS.apps.map(a2 => a2[k]).filter(isFinite); return v.length ? v.reduce((s2, x2) => s2 + x2, 0) / v.length : NaN; };
+      const pct = v => isFinite(v) ? (100 * v).toFixed(1) + '%' : '—';
+      $('decTiles').innerHTML = `
+        <div class="tile"><div class="k">Truly out of spec</div><div class="v">${f1(d.trulyBad)}</div><div class="d">per 1,000 parts from your process</div></div>
+        <div class="tile"><div class="k">The study said</div><div class="v" style="font-size:16px">miss ${pct(avg('miss'))}<br>false alarm ${pct(avg('fa'))}</div><div class="d">average over inspectors, from the "Accept / reject" tab</div></div>${rej}`;
+    } else $('decTiles').innerHTML = `
+      <div class="tile"><div class="k">True ${gl('cp', 'Cp')}</div><div class="v">${d.cpTrue.toFixed(2)}</div><div class="d">the parts as they really are</div></div>
+      <div class="tile"><div class="k">Cp you would measure</div><div class="v">${d.cpObs.toFixed(2)}</div><div class="d">parts + gauge variation${Math.abs(b) > 0 ? `; Cpk ${d.cpkObs.toFixed(2)} with the bias` : ''}</div></div>${rej}`;
+    $('decLegend').innerHTML = '<span><i style="background:var(--accent)"></i>True parts</span>' + (attr ? '' : '<span><i style="background:var(--overall)"></i>What the gauge shows</span>') + '<span><i style="background:var(--critical)"></i>Spec limit</span><span><i style="background:rgba(154,103,0,0.7)"></i>Good parts rejected</span><span><i style="background:rgba(207,34,46,0.8)"></i>Bad parts accepted</span>' + (S.gb ? '<span><i style="background:#9a6700"></i>Acceptance limit (guard band)</span>' : '');
     const pdf = (v, m, s2) => Math.exp(-0.5 * ((v - m) / s2) ** 2) / (s2 * Math.sqrt(2 * Math.PI));
     const fTrue = v => pdf(v, mu, sp);
-    const pAcc = v => MSA.pAccept(v, sm, b, alo, ahi);
     const goodRej = v => (v >= lsl && v <= usl) ? fTrue(v) * (1 - pAcc(v)) : 0;
     const badAcc = v => (v < lsl || v > usl) ? fTrue(v) * pAcc(v) : 0;
+    const spread = attr ? Math.max(...traits.map(t => 3 * t.g + Math.abs(t.shift))) : 4 * sm;
     // main chart
     {
       const { x, w, h } = cv('dC', 190);
-      const so = Math.sqrt(sp ** 2 + sm ** 2), lo = Math.min(mu - S.T * 1.3, mu - 4 * so + b), hi = Math.max(mu + S.T * 1.3, mu + 4 * so + b);
+      const so = attr ? sp : Math.sqrt(sp ** 2 + sm ** 2), lo = Math.min(mu - S.T * 1.3, mu - 4 * so + b), hi = Math.max(mu + S.T * 1.3, mu + 4 * so + b);
       const L = 14, R = w - 14, B = h - 22, px = v => L + (v - lo) / (hi - lo) * (R - L);
       const peak = pdf(mu, mu, sp), py = v => B - v / peak * (B - 14);
       const area = (fn, col) => { x.beginPath(); x.moveTo(px(lo), B); for (let i = 0; i <= 400; i++) { const v = lo + (hi - lo) * i / 400; x.lineTo(px(v), py(fn(v))); } x.lineTo(px(hi), B); x.closePath(); x.fillStyle = col; x.fill(); };
       const curve = (fn, col) => { x.beginPath(); for (let i = 0; i <= 300; i++) { const v = lo + (hi - lo) * i / 300; i ? x.lineTo(px(v), py(fn(v))) : x.moveTo(px(v), py(fn(v))); } x.strokeStyle = col; x.lineWidth = 2; x.stroke(); };
       area(fTrue, 'rgba(21,96,62,0.10)');
       area(goodRej, 'rgba(154,103,0,0.55)'); area(badAcc, 'rgba(207,34,46,0.65)');
-      curve(fTrue, '#15603E'); curve(v => pdf(v, mu + b, so), '#C2410C');
+      curve(fTrue, '#15603E'); if (!attr) curve(v => pdf(v, mu + b, so), '#C2410C');
       const vl = (v, col, lab, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash(dash); x.beginPath(); x.moveTo(p, 6); x.lineTo(p, B); x.stroke(); x.setLineDash([]); x.fillStyle = col; x.textAlign = 'center'; x.fillText(lab, p, B + 12); };
       vl(lsl, '#cf222e', 'LSL', [5, 4]); vl(usl, '#cf222e', 'USL', [5, 4]);
       if (g > 0) { vl(alo, '#9a6700', '', [2, 3]); vl(ahi, '#9a6700', '', [2, 3]); }
@@ -1794,7 +2111,7 @@ const MSA = (() => {
     // zoom on each limit: the wrong decisions are thin slivers on the main chart
     const zoom = (id, lim, acc, side) => {
       const { x, w, h } = cv(id, 164);
-      const span = Math.max(4 * sm + Math.abs(b) + g, S.T * 0.08);
+      const span = Math.max(spread + Math.abs(b) + g, S.T * 0.08);
       const lo = lim - span, hi = lim + span, L = 10, R = w - 10, B = h - 34, T0 = 16, px = v => L + (v - lo) / (hi - lo) * (R - L);
       let ymax = 0; for (let i = 0; i <= 200; i++) { const v = lo + (hi - lo) * i / 200; ymax = Math.max(ymax, goodRej(v), badAcc(v)); }
       if (!(ymax > 0)) ymax = fTrue(lim) || 1;
@@ -1816,10 +2133,275 @@ const MSA = (() => {
       x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText(side === 'LSL' ? '← bad' : 'good', L + 2, 8); x.textAlign = 'right'; x.fillText(side === 'LSL' ? 'good →' : 'bad →', R - 2, 8);
     };
     zoom('dzL', lsl, alo, 'LSL'); zoom('dzU', usl, ahi, 'USL');
-    const share = 100 * sm ** 2 / (sp ** 2 + sm ** 2);
-    $('decCap').innerHTML = `Measurement adds <b>${share < 1 ? '< 1' : share.toFixed(0)}%</b> to the variance you see. ${d.cpTrue - d.cpObs > 0.1 ? 'Your SPC chart and Cp look worse than the process really is: you may chase problems that are in the gauge, not the machine.' : 'Cp hardly changes: the gauge is not hiding the process.'} ${d.badAccepted >= 0.1 ? 'Bad parts near the limits get accepted because the gauge reads them inside: these are the escapes that reach your customer.' : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} Calculated with the gauge's true error (from "Show the truth")${Math.abs(b) > 0 ? ', including the bias' : ''}.`;
+    if (attr) {
+      const odd = traits.some(t => t.shift !== 0 || t.g !== traits[0].g);
+      $('decCap').innerHTML = `A go/no-go call has no reading to put on a chart: what matters is how often parts near each limit get the wrong call. ${d.badAccepted >= 0.1 ? 'Bad parts just outside the limits get accepted: escapes to your customer.' : ''} ${odd ? `With ${S.attrA} inspectors sharing the work, one who calls differently changes the rates for the whole line.` : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} These are per 1,000 production parts. The study's miss and false alarm rates are per call in the study, which had far more parts near the limits than production does: the two answer different questions. Calculated with each inspector's true call (from "Show the truth" in the "Accept / reject" tab).`;
+    } else {
+      const share = 100 * sm ** 2 / (sp ** 2 + sm ** 2);
+      $('decCap').innerHTML = `Measurement adds <b>${share < 1 ? '< 1' : share.toFixed(0)}%</b> to the variance you see. ${d.cpTrue - d.cpObs > 0.1 ? 'Your SPC chart and Cp look worse than the process really is: you may chase problems that are in the gauge, not the machine.' : 'Cp hardly changes: the gauge is not hiding the process.'} ${d.badAccepted >= 0.1 ? 'Bad parts near the limits get accepted because the gauge reads them inside: these are the escapes that reach your customer.' : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} Calculated with the gauge's true error (from "Show the truth")${Math.abs(b) > 0 ? ', including the bias' : ''}.`;
+    }
   }
 
+
+
+  // ---------- Width: destructive test ----------
+  const isDestr = () => !!PRESETS[S.preset].destr;
+  function renderDest() {
+    const r = DS, nested = S.dDesign === 'nested', t = DG.truth, D = DG.data;
+    const nb = nested ? S.dBn : S.dB, N = nb * S.dA * S.dR;
+    $('destInfo').textContent = `${nested ? `${S.dA} appraisers × ${nb} own batches` : `${nb} batches × ${S.dA} appraisers`} × ${S.dR} pieces = ${N} pieces, each tested once · ${nested ? 'nested ANOVA' : 'ANOVA, batch in place of part'}`;
+    const note = $('destNote'); note.hidden = !S.destSwitched;
+    if (S.destSwitched) note.innerHTML = `The example switched to a destructive test: <b>${esc(PRESETS[S.preset].label)}</b>. Pick another under "Destructive tests" in "Your part and gauge".`;
+    const v = MSA.verdict(r.pctGRR), vt = MSA.verdict(r.tolGRR);
+    const ndcOk = isFinite(r.ndc) && r.ndc >= 5, ndcCls = isFinite(r.ndc) ? (ndcOk ? 'good' : 'bad') : 'none';
+    const head = { good: 'Acceptable here', warn: 'May be acceptable: decide with your team and customer', bad: 'Not acceptable as it stands', none: '—' }[v.cls];
+    let h = `<div class="verdict ${vcls(v.cls)}">${head}<small>Repeatability here includes the difference between pieces of one batch: the study cannot separate it from the gauge.${v.cls !== 'good' ? ' Before blaming the tester, check how alike the pieces in a batch are (see below the charts).' : ''}</small></div>
+      <div class="tiles three">
+        <div class="tile"><div class="k">${gl('grrTV', '%GRR vs total variation')}</div><div class="v">${pc(r.pctGRR)}</div><span class="${bcls(v.cls)}">${v.text}</span><div class="d">Can we use it for SPC and improvement?</div></div>
+        <div class="tile"><div class="k">${gl('grrTol', '%GRR vs tolerance')}</div><div class="v">${pc(r.tolGRR)}</div><span class="${bcls(vt.cls)}">${vt.text}</span><div class="d">Can we use it to sort good from bad?</div></div>
+        <div class="tile"><div class="k">${gl('ndc', 'ndc')}</div><div class="v">${isFinite(r.ndc) ? r.ndc : '—'}</div><span class="${bcls(ndcCls)}">${!isFinite(r.ndc) ? 'Cannot tell' : ndcOk ? '5 or more' : 'Below 5'}</span><div class="d">How many batch groups it can tell apart</div></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><div class="k">${gl('destRep', 'Repeatability')}</div><div class="v">${pc(r.pctEV)}</div><div class="d">σ ${fmtU(r.ev)} · gauge + pieces in a batch</div></div>
+        <div class="tile"><div class="k">${gl('av', 'Reproducibility')}</div><div class="v">${pc(r.pctRepro)}</div><div class="d">σ ${fmtU(r.repro)} · between appraisers${!nested && !r.pooled ? ', incl. interaction' : ''}</div></div>
+        <div class="tile"><div class="k">${gl('batch', 'Batch-to-batch')}</div><div class="v">${pc(r.pctPV)}</div><div class="d">σ ${fmtU(r.pv)} · plays the part variation's role</div></div>
+        <div class="tile"><div class="k">% contribution of the gauge</div><div class="v">${pc(r.contrib.grr)}</div><div class="d">share of the variance (adds up to 100% with batches)</div></div>
+      </div>`;
+    $('destOut').innerHTML = h;
+    // what "repeatability" is made of
+    if (S.truthShown) {
+      const g2 = t.gaugeRep ** 2, w2 = t.within ** 2, tot = g2 + w2 || 1, gp = 100 * g2 / tot;
+      $('destSplit').innerHTML = `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:8px;font-size:11.5px;color:#fff;line-height:22px">
+          <div style="width:${gp}%;background:var(--accent);padding-left:6px;white-space:nowrap;overflow:hidden">${gp >= 18 ? 'the gauge ' + gp.toFixed(0) + '%' : ''}</div>
+          <div style="width:${100 - gp}%;background:#9a6700;padding-left:6px;white-space:nowrap;overflow:hidden">${100 - gp >= 18 ? 'pieces in a batch ' + (100 - gp).toFixed(0) + '%' : ''}</div></div>
+        <div class="cap">Of the true repeatability variance, <b>${gp.toFixed(0)}%</b> is the gauge (σ ${fmtU(t.gaugeRep)}) and <b>${(100 - gp).toFixed(0)}%</b> is the difference between pieces of one batch (σ ${fmtU(t.within)}). The study reported σ ${fmtU(r.ev)} for the two together.</div>`;
+    } else {
+      $('destSplit').innerHTML = `<div style="display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:8px;font-size:11.5px;color:#fff;line-height:22px"><div style="width:100%;background:repeating-linear-gradient(135deg,var(--accent) 0 10px,#9a6700 10px 20px);padding-left:6px">gauge + pieces in a batch: σ ${fmtU(r.ev)}</div></div>
+        <div class="cap">The study sees one number. How much of it is the tester and how much is the material? Press "Show the truth" to split it.</div>`;
+    }
+    // readings by batch
+    {
+      const { x, w, h: hh } = cv('dRC', 230);
+      const L = 58, R = w - 10, T0 = 14, B = hh - 24;
+      let vals = D.flat(2); if (S.truthShown) vals = vals.concat(t.batches.flat());
+      const y = yScale(Math.min(...vals), Math.max(...vals), T0, B); yAxis(x, y, L, R);
+      const dash = (cx, v, half) => { const py = Math.round(y(v)) + 0.5; x.strokeStyle = '#16201B'; x.lineWidth = 2; x.beginPath(); x.moveTo(cx - half, py); x.lineTo(cx + half, py); x.stroke(); };
+      if (!nested) {
+        const ord = D.map((_, i) => i).sort((i, k) => MSA.mean(D[i].flat()) - MSA.mean(D[k].flat()));
+        const step = (R - L) / (ord.length + 1), off = Math.min(7, step / 5);
+        ord.forEach((i, n) => {
+          const cx = L + step * (n + 1);
+          x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('B' + (i + 1), cx, hh - 10);
+          D[i].forEach((reads, j) => reads.forEach((v, k) => { const px = cx + (j - (S.dA - 1) / 2) * off; x.fillStyle = APP_COL[j]; x.globalAlpha = 0.85; mark(x, j, px, y(v), 2.8); x.globalAlpha = 1; tip(px, y(v), `Batch ${i + 1} · appraiser ${APP_NAME[j]} · piece ${k + 1}<br>reading ${fmtU(v, 0)}${S.truthShown ? `<br>batch average (true) ${fmtU(t.batches[i], 1)}` : ''}`); }));
+          if (S.truthShown) dash(cx, t.batches[i], step * 0.35);
+        });
+      } else {
+        const bw = (R - L) / S.dA;
+        D.forEach((bs, j) => {
+          const x0 = L + j * bw, ord = bs.map((_, i) => i).sort((i, k) => MSA.mean(bs[i]) - MSA.mean(bs[k])), step = bw / (ord.length + 1);
+          x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('Appraiser ' + APP_NAME[j], x0 + bw / 2, hh - 10);
+          if (j > 0) { x.strokeStyle = 'rgba(22,32,42,0.18)'; x.lineWidth = 1; x.beginPath(); x.moveTo(Math.round(x0) + 0.5, T0); x.lineTo(Math.round(x0) + 0.5, B); x.stroke(); }
+          ord.forEach((i, n) => {
+            const cx = x0 + step * (n + 1);
+            bs[i].forEach((v, k) => { x.fillStyle = APP_COL[j]; x.globalAlpha = 0.85; mark(x, j, cx, y(v), 2.8); x.globalAlpha = 1; tip(cx, y(v), `Appraiser ${APP_NAME[j]} · own batch ${i + 1} · piece ${k + 1}<br>reading ${fmtU(v, 0)}${S.truthShown ? `<br>batch average (true) ${fmtU(t.batches[j][i], 1)}` : ''}`); });
+            if (S.truthShown) dash(cx, t.batches[j][i], step * 0.35);
+          });
+        });
+      }
+      $('dRCap').innerHTML = (nested ? 'Each appraiser has their own batches, sorted from small to large. ' : 'Batches sorted from small to large; dots side by side are the appraisers. ') + 'The vertical spread within a batch is what the study calls repeatability.' + (S.truthShown ? ' Black dashes: the true batch average.' : '');
+    }
+    // within-batch ranges
+    {
+      const vals = nested ? D.map(bs => bs.map(MSA.range)) : Array.from({ length: S.dA }, (_, j) => D.map(bt => MSA.range(bt[j])));
+      const rbar = MSA.mean(vals.flat()), ucl = MSA.D4[S.dR] * rbar;
+      const ro = blockChart('dGC', vals, rbar, ucl, null, 'R̄ ' + fmt(rbar), true, (j, i, v) => `Appraiser ${APP_NAME[j]} · ${nested ? 'own ' : ''}batch ${i + 1}<br>range ${fmtU(v)}`);
+      $('dGCap').innerHTML = `Each point: the range of the ${S.dR} pieces one appraiser tested from one batch. ${ro.out ? `<b>${ro.out}</b> beyond the limit: a batch that was not uniform, or a test that went wrong. Look at those pieces.` : 'All inside the limit: no single batch stands out.'}`;
+    }
+    $('destLegend').innerHTML = APP_NAME.slice(0, S.dA).map((n, j) => `<span>${shapeSvg(j)} Appraiser ${n}</span>`).join('') + (S.truthShown ? '<span><i style="background:#16201B;border-radius:1px;height:3px"></i>True batch average</span>' : '');
+    // truth
+    const tb = $('destTruth'); tb.hidden = !S.truthShown;
+    if (S.truthShown) {
+      const rows = [
+        ['Gauge repeatability σ', 'cannot separate', fmtU(t.gaugeRep), 'The tester itself (and rounding)'],
+        ['Pieces in one batch σ', 'cannot separate', fmtU(t.within), 'The material, not the gauge'],
+        ['Repeatability σ (the two together)', fmtU(r.ev), fmtU(t.repeat), ''],
+        ['Reproducibility σ', fmtU(r.repro), fmtU(t.repro), nested ? 'Mixed with which batches each appraiser got: rough' : ''],
+        ['Batch-to-batch σ', fmtU(r.pv), fmtU(t.sigmaP), 'Estimated from few batches: rough'],
+        ['%GRR vs total variation', pc(r.pctGRR), pc(t.pctStudy), 'What this study design measures, on average'],
+        ['%GRR of the gauge alone', '—', pc(t.pctGauge), 'The tester\'s own share of what you see on production pieces'],
+      ];
+      tb.innerHTML = `<h3 style="margin:0">The truth behind this study</h3><table><tr><th>Source</th><th style="text-align:right">Study said</th><th style="text-align:right">True</th><th>Note</th></tr>
+        ${rows.map(x2 => `<tr><td>${x2[0]}</td><td class="n">${x2[1]}</td><td class="n">${x2[2]}</td><td class="mini">${x2[3]}</td></tr>`).join('')}</table>
+        <div class="hint">${t.within > t.gaugeRep ? 'Here the material varies more than the tester scatters: a better gauge would hardly change the result.' : 'Here the tester scatters more than the material varies: the result mostly reflects the gauge.'} One study is one estimate: press "Run again" to see how much it moves.</div>`;
+    }
+    // reading the result
+    const items = [];
+    items.push(['', 'The study counts piece-to-piece differences as gauge scatter', 'That is the price of a destructive test. Keep pieces in a batch as alike as possible: consecutive parts from one cavity, fixture or furnace position; samples cut next to each other; one roll, one coil, one mix.']);
+    if (v.cls !== 'good') items.push(['b', 'Before blaming the tester: check the batches', 'If pieces in a batch differ, the material is in the result. Test the tester on its own with reference specimens (hardness test blocks, certified thickness standards, a calibrated load cell): if its own scatter is small, the batches are the problem.']);
+    if (nested) items.push(['w', 'Nested: appraiser differences are mixed with the batches', `Each appraiser saw different batches, so a gap between appraisers may be the batches, not the people. The appraiser estimate is rough${r.av === 0 ? ' (here it came out as zero: the batches varied more than the appraisers)' : ''}. More batches per appraiser help, or share batches if they are big enough.`]);
+    else {
+      items.push(['', `Each batch must be big enough for everyone`, `${S.dA} appraisers × ${S.dR} pieces = ${S.dA * S.dR} similar pieces per batch. If a batch is smaller, use "Own batches per appraiser".`]);
+      if (!r.pooled) items.push(['w', 'Batch × appraiser interaction', `ANOVA finds that appraisers rank the batches differently (p = ${r.pInteraction.toFixed(3)}). Check sample preparation: cutting, polishing, clamping, the speed of the pull.`]);
+    }
+    items.push(['', 'One-sided limits', 'Pull-off force, burst pressure and weld peel usually have only a minimum. %GRR vs tolerance needs both limits; use %GRR vs total variation (or a process σ from SPC), and look at how close the process runs to the limit.']);
+    if (!isDestr()) items.unshift(['w', 'This example is not a destructive test', 'Pick one under "Destructive tests" in "Your part and gauge".']);
+    $('destDiag').innerHTML = '<h3 style="margin:14px 0 0">Reading the result</h3>' + items.map(([c, t2, s2]) => `<div class="item ${c}"><b>${t2}</b><span>${s2}</span></div>`).join('');
+    // calculation
+    const tbl = nested ? r.table : r.full;
+    const nm = s2 => s2.replace('Part × Appraiser', 'Batch × Appraiser').replace(/^Part$/, 'Batch');
+    $('destCalc').innerHTML = `<div class="tblwrap"><table class="tbl anova"><tr><th>Source</th><th>DF</th><th>SS</th><th>MS</th><th>F</th><th>p</th></tr>
+      ${tbl.map(rw => { const showF = nested ? rw.f != null : rw.src === 'Part × Appraiser'; return `<tr><td>${nm(rw.src)}</td><td>${rw.df}</td><td>${rw.ss.toExponential(3)}</td><td>${rw.ms != null ? rw.ms.toExponential(3) : ''}</td><td>${showF && isFinite(rw.f) ? rw.f.toFixed(2) : ''}</td><td class="p">${showF ? rw.p.toFixed(3) : ''}</td></tr>`; }).join('')}</table></div>
+      <div class="calc-col w" style="margin-top:8px;"><h5>Variance components</h5>
+      ${nested ? `<div class="f">Repeatability = MS error → σ = <b>${fmt(r.ev)}</b></div>
+        <div class="f">Batch = (MS batch − MS error) / pieces = (MS batch − MS error) / ${S.dR} → σ = <b>${fmt(r.pv)}</b></div>
+        <div class="f">Appraiser = (MS appraiser − MS batch) / (batches × pieces) = … / (${S.dBn} × ${S.dR}) → σ = <b>${fmt(r.av)}</b></div>
+        <div class="x">Nested: batches are numbered inside each appraiser (A's batch 1 is not B's batch 1), so appraiser is tested against batch, and batch against error. There is no interaction term.</div>`
+      : `<div class="f">Same calculation as the ANOVA in the Gauge R&amp;R tab, with the batch in the part's place. Interaction p = ${r.pInteraction.toFixed(3)} ${r.pooled ? '> 0.25: pooled into repeatability.' : '≤ 0.25: kept as part of reproducibility.'}</div>
+        <div class="f">Repeatability σ = <b>${fmt(r.ev)}</b> · appraiser σ = <b>${fmt(r.av)}</b>${r.pooled ? '' : ` · interaction σ = <b>${fmt(r.inter)}</b>`} · batch σ = <b>${fmt(r.pv)}</b></div>`}
+      <div class="f">GRR = √(repeatability + reproducibility) = <b>${fmt(r.grr)}</b> · ndc = 1.41 × σbatch / σGRR = <b>${isFinite(r.ndc) ? r.ndc : '—'}</b></div>
+      <div class="x">A component that comes out negative is set to zero. %GRR vs tolerance = 6 × GRR / tolerance.</div></div>`;
+    // readings
+    let dt = '<table class="tbl"><tr>';
+    if (nested) {
+      dt += '<th>Appraiser</th><th>Batch</th>' + Array.from({ length: S.dR }, (_, k) => `<th>Piece ${k + 1}</th>`).join('') + '<th>Average</th></tr>';
+      D.forEach((bs, j) => bs.forEach((rd, i) => { dt += `<tr><td style="color:${APP_COL[j]}">${APP_NAME[j]}</td><td>${i + 1}</td>${rd.map(v2 => `<td>${fmt(v2, 0)}</td>`).join('')}<td>${fmt(MSA.mean(rd), 2)}</td></tr>`; }));
+    } else {
+      dt += '<th>Batch</th>'; for (let j = 0; j < S.dA; j++) for (let k = 0; k < S.dR; k++) dt += `<th style="color:${APP_COL[j]}">${APP_NAME[j]}${k + 1}</th>`;
+      dt += '<th>Average</th></tr>';
+      D.forEach((bt, i) => { dt += `<tr><td>B${i + 1}</td>${bt.map(rd => rd.map(v2 => `<td>${fmt(v2, 0)}</td>`).join('')).join('')}<td>${fmt(MSA.mean(bt.flat()), 2)}</td></tr>`; });
+    }
+    $('destData').innerHTML = dt + '</table><p class="calc-note">Every value is a different piece.</p>';
+  }
+
+  // ---------- Attribute agreement ----------
+  const AGUIDE = {
+    eff: v => !isFinite(v) ? 'none' : v >= 0.9 ? 'good' : v >= 0.8 ? 'warn' : 'bad',
+    miss: v => !isFinite(v) ? 'none' : v <= 0.02 ? 'good' : v <= 0.05 ? 'warn' : 'bad',
+    fa: v => !isFinite(v) ? 'none' : v <= 0.05 ? 'good' : v <= 0.10 ? 'warn' : 'bad',
+    k: v => !isFinite(v) ? 'none' : v > 0.75 ? 'good' : v >= 0.4 ? 'warn' : 'bad',
+  };
+  const RANK = { none: 0, good: 1, warn: 2, bad: 3 };
+  const worst = cs => cs.reduce((a, c) => RANK[c] > RANK[a] ? c : a, 'good');
+  const pctA = v => isFinite(v) ? (100 * v).toFixed(v >= 0.995 || v === 0 ? 0 : 1) + '%' : '—';
+  const kap = v => isFinite(v) ? v.toFixed(2) : '—';
+  function attrExpect(j) { // expected rates on these parts, from the true call probabilities
+    const p = AG.truth.p, ref = AG.ref; let c = 0, m = 0, f = 0, nb = 0, ng = 0;
+    p.forEach((row, i) => { const q = row[j]; if (ref[i]) { ng++; c += q; f += 1 - q; } else { nb++; c += 1 - q; m += q; } });
+    return { eff: c / p.length, miss: nb ? m / nb : NaN, fa: ng ? f / ng : NaN };
+  }
+  function renderAttr() {
+    const A = AS, n = A.n, lsl = S.nominal - S.T, usl = S.nominal + S.T, parts = AG.truth.parts;
+    const nearW = 0.25 * S.T, nNear = parts.filter(x => Math.min(Math.abs(x - lsl), Math.abs(x - usl)) <= nearW).length;
+    $('attrInfo').textContent = `${n} parts × ${S.attrA} appraisers × ${S.attrR} trials = ${n * S.attrA * S.attrR} calls · reference: ${A.nGood} good, ${A.nBad} bad, ${nNear} near a limit`;
+    const cls = A.apps.map(a => ({ eff: AGUIDE.eff(a.eff), miss: AGUIDE.miss(a.miss), fa: AGUIDE.fa(a.fa), k: AGUIDE.k(a.kRef.k) }));
+    const overall = worst(cls.flatMap(c => [c.eff, c.miss, c.fa, c.k]).concat(A.pairK.map(p => AGUIDE.k(p.k))).filter(c => c !== 'none'));
+    const thin = A.nBad < Math.max(5, 0.2 * n) || nNear < 0.2 * n;
+    let verdict;
+    if (thin) verdict = `<div class="verdict v-warn">Cannot judge: the parts did not test the inspectors<small>${A.nBad < Math.max(5, 0.2 * n) ? `Only ${A.nBad} bad part${A.nBad === 1 ? '' : 's'} by reference` : `Only ${nNear} part${nNear === 1 ? '' : 's'} near a limit`}. Easy parts get the right call from anyone, so good-looking numbers here prove little. Pick about a third or more bad parts, and plenty close to both limits.</small></div>`;
+    else {
+      const head = { good: 'The inspectors agree with each other and with the reference', warn: 'Marginal: improve before you rely on these calls', bad: 'Not acceptable: the calls cannot be trusted yet' }[overall];
+      const bad = A.apps.map((a, j) => cls[j].miss === 'bad' ? `${APP_NAME[j]} accepts bad parts` : cls[j].fa === 'bad' ? `${APP_NAME[j]} rejects good parts` : cls[j].eff === 'bad' ? `${APP_NAME[j]} makes many wrong calls` : '').filter(Boolean);
+      verdict = `<div class="verdict ${vcls(overall)}">${head}<small>${bad.length ? bad.join('; ') + '. ' : ''}Details and the "what now" advice are below the charts.</small></div>`;
+    }
+    const cell = (v, c, f) => `<td class="n"><span class="${bcls(c)}" style="margin:0">${f(v)}</span></td>`;
+    let tb = `<div class="tblwrap"><table class="comp"><tr><th>Appraiser</th><th style="text-align:right">${gl('within', 'Agrees with self')}</th><th style="text-align:right">${gl('vsref', 'Agrees with reference')}</th><th style="text-align:right">${gl('kappa', 'Kappa vs reference')}</th><th style="text-align:right">${gl('eff', 'Effectiveness')}</th><th style="text-align:right">${gl('miss', 'Miss rate')}</th><th style="text-align:right">${gl('fa', 'False alarm rate')}</th></tr>`;
+    A.apps.forEach((a, j) => { tb += `<tr><td>${shapeSvg(j)} ${APP_NAME[j]}</td><td class="n">${pctA(a.within)}</td><td class="n">${pctA(a.vsRef)}</td>${cell(a.kRef.k, cls[j].k, kap)}${cell(a.eff, cls[j].eff, pctA)}${cell(a.miss, cls[j].miss, pctA)}${cell(a.fa, cls[j].fa, pctA)}</tr>`; });
+    tb += `<tr><td>All together</td><td class="n" colspan="2" style="text-align:right">${pctA(A.allAgree)} agree · ${pctA(A.allRef)} all right</td><td colspan="4" class="mini" style="padding-left:12px">share of parts where every call by every appraiser matched${A.allRef < A.allAgree ? '; the gap is parts where everyone agreed and was wrong' : ''}</td></tr></table></div>`;
+    const pk = A.pairK.map(p => `<span style="white-space:nowrap">${APP_NAME[p.j]}–${APP_NAME[p.l]} <b>${kap(p.k)}</b> <span class="${bcls(AGUIDE.k(p.k))}" style="margin:0">${{ good: 'good', warn: 'marginal', bad: 'poor', none: '—' }[AGUIDE.k(p.k)]}</span></span>`).join(' &nbsp; ');
+    const wk = A.apps.map((a, j) => `${APP_NAME[j]} <b>${kap(a.kWithin.k)}</b>`).join(' · ');
+    $('attrOut').innerHTML = verdict + tb + `<div style="font-size:13px;margin-top:10px">${gl('kappa', 'Kappa')} between appraisers: ${pk}</div>
+      <div style="font-size:13px;margin-top:4px;color:var(--text-2)">Kappa within each appraiser (trial to trial): ${wk}</div>
+      <div class="hint">Guidelines used here, common in industry (agree yours with your customer): effectiveness 90% or more acceptable, 80% to 90% marginal; miss rate 2% or less acceptable, up to 5% marginal; false alarm rate 5% or less acceptable, up to 10% marginal; kappa above 0.75 good, 0.40 to 0.75 marginal, below 0.40 poor.</div>`;
+    // decision grid: rows = reference + every appraiser × trial; columns = parts by true size
+    {
+      const rows = 1 + S.attrA * S.attrR, rowH = 14, top = 18;
+      const { x, w, h } = cv('aGC', top + rows * rowH + 34);
+      const L = 34, R = w - 8, ord = parts.map((_, i) => i).sort((i, k) => parts[i] - parts[k]), cw = (R - L) / n;
+      const lab = (t2, ry) => { x.fillStyle = '#5F6672'; x.textAlign = 'right'; x.fillText(t2, L - 5, ry + rowH / 2); };
+      const cellD = (col, row, acc, wrong, tipT) => {
+        const px = L + col * cw, py = top + row * rowH;
+        x.fillStyle = acc ? 'rgba(21,96,62,0.78)' : 'rgba(207,34,46,0.78)'; x.fillRect(px + 0.5, py + 1, Math.max(1, cw - 1), rowH - 2);
+        if (!acc && cw >= 5) { x.fillStyle = '#fff'; x.fillRect(px + cw / 2 - Math.min(3, cw / 3), py + rowH / 2 - 1, 2 * Math.min(3, cw / 3), 2); }
+        if (wrong) { x.strokeStyle = '#16201B'; x.lineWidth = 1.6; x.strokeRect(px + 1.3, py + 1.8, Math.max(1, cw - 2.6), rowH - 3.6); }
+        tip(px + cw / 2, py + rowH / 2, tipT);
+      };
+      lab('Ref', top); ord.forEach((i, c) => cellD(c, 0, AG.ref[i], false, `Part ${i + 1}<br>true size ${fmtU(parts[i], 1)}<br>reference: <b>${AG.ref[i] ? 'good' : 'bad'}</b>`));
+      for (let j = 0; j < S.attrA; j++) for (let k = 0; k < S.attrR; k++) {
+        const row = 1 + j * S.attrR + k; lab(APP_NAME[j] + (k + 1), top + row * rowH);
+        ord.forEach((i, c) => { const v = AG.d[i][j][k]; cellD(c, row, v, v !== AG.ref[i], `Part ${i + 1} · ${APP_NAME[j]} trial ${k + 1}<br>true size ${fmtU(parts[i], 1)}<br>call: <b>${v ? 'accept' : 'reject'}</b>${v !== AG.ref[i] ? (AG.ref[i] ? ' (false alarm)' : ' (miss)') : ''}`); });
+        if (k === 0 && j > 0) { x.strokeStyle = '#16201B'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, top + row * rowH); x.lineTo(R, top + row * rowH); x.stroke(); }
+      }
+      // spec limits fall between the parts
+      const labs = [];
+      [[lsl, 'LSL'], [usl, 'USL']].forEach(([lim, t2]) => { const k = parts.filter(v => v < lim).length, px = Math.round(L + k * cw) + 0.5; x.strokeStyle = '#cf222e'; x.lineWidth = 1.5; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(px, top - 4); x.lineTo(px, top + rows * rowH + 4); x.stroke(); x.setLineDash([]); labs.push({ x: px, text: t2, col: '#cf222e' }); });
+      placeLabels(x, labs, [8, 8], L, R);
+      x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('parts sorted by true size, smallest left', (L + R) / 2, h - 10);
+      const wrongN = A.apps.reduce((s2, a) => s2 + a.missN + a.faN, 0);
+      $('aGCap').innerHTML = `Green: accept. Red with a dash: reject. A dark outline marks a wrong call (<b>${wrongN}</b> in total). Top row: the reference. Wrong calls bunch up next to the limits, where the call is hardest${S.attrSel === 'prod' ? ': and here few parts sit there' : ''}.`;
+    }
+    // grey zone: share of trials accepted, near each limit
+    const tr = AG.truth.traits, span = Math.max(...tr.map(t2 => 3.5 * t2.g + Math.abs(t2.shift)), 0.25 * S.T);
+    const zone = (id, lim, side) => {
+      const { x, w, h } = cv(id, 190);
+      const lo = lim - span, hi = lim + span, L = 40, R = w - 10, T0 = 12, B = h - 34, px = v => L + (v - lo) / (hi - lo) * (R - L), py = p => B - p * (B - T0);
+      const goodLeft = side === 'LSL' ? false : true; // which side of the limit is good
+      x.fillStyle = 'rgba(21,96,62,0.07)'; if (goodLeft) x.fillRect(L, T0, px(lim) - L, B - T0); else x.fillRect(px(lim), T0, R - px(lim), B - T0);
+      x.strokeStyle = 'rgba(22,32,42,0.08)'; x.fillStyle = '#5F6672'; x.lineWidth = 1; x.textAlign = 'right';
+      [0, 0.5, 1].forEach(p => { const yy = Math.round(py(p)) + 0.5; x.beginPath(); x.moveTo(L, yy); x.lineTo(R, yy); x.stroke(); x.fillText((p * 100) + '%', L - 4, yy); });
+      if (S.truthShown) tr.forEach((t2, j) => { x.strokeStyle = APP_COL[j]; x.lineWidth = 1.8; x.setLineDash(j ? [5 - j, 2] : []); x.beginPath(); for (let i = 0; i <= 160; i++) { const v = lo + (hi - lo) * i / 160, p = MSA.attrPAccept(v, lsl, usl, t2.shift, t2.g); i ? x.lineTo(px(v), py(p)) : x.moveTo(px(v), py(p)); } x.stroke(); x.setLineDash([]); });
+      let cnt = 0;
+      parts.forEach((v, i) => { if (v < lo || v > hi) return; cnt++; for (let j = 0; j < S.attrA; j++) { const sh = AG.d[i][j].reduce((s2, z) => s2 + z, 0) / S.attrR; const yy = py(sh) + (j - (S.attrA - 1) / 2) * 3; x.fillStyle = APP_COL[j]; x.globalAlpha = 0.8; mark(x, j, px(v), yy, 2.8); x.globalAlpha = 1; tip(px(v), yy, `Part ${i + 1} · ${APP_NAME[j]}<br>true size ${fmtU(v, 1)}<br>accepted in ${Math.round(sh * S.attrR)} of ${S.attrR} trials${S.truthShown ? `<br>true chance ${(100 * AG.truth.p[i][j]).toFixed(0)}%` : ''}`); } });
+      const p0 = Math.round(px(lim)) + 0.5; x.strokeStyle = '#cf222e'; x.lineWidth = 1.5; x.setLineDash([5, 4]); x.beginPath(); x.moveTo(p0, T0 - 4); x.lineTo(p0, B); x.stroke(); x.setLineDash([]);
+      x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
+      placeLabels(x, [{ x: p0, text: side + ' ' + fmt(lim, 0), col: '#cf222e' }], [B + 12], L, R);
+      x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText(goodLeft ? 'good' : '← bad', L + 2, B + 26); x.textAlign = 'right'; x.fillText(goodLeft ? 'bad →' : 'good', R - 2, B + 26);
+      if (!cnt) { x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('No study parts near this limit', (L + R) / 2, (T0 + B) / 2); }
+    };
+    zone('aZL', lsl, 'LSL'); zone('aZU', usl, 'USL');
+    $('attrLegend').innerHTML = APP_NAME.slice(0, S.attrA).map((nm, j) => `<span>${shapeSvg(j)} Appraiser ${nm}</span>`).join('') + '<span><i style="background:rgba(21,96,62,0.25);border-radius:2px"></i>Good side of the limit</span>';
+    $('aZCap').innerHTML = `Each mark: how often one appraiser accepted one part across the ${S.attrR} trials. A perfect call is 100% on the good side and 0% on the bad side. Marks in between are the grey zone, where the same part gets different calls.${S.truthShown ? ' Lines: each appraiser\'s true chance of accepting a part of that size. A line shifted into the good side is a strict inspector; into the bad side, a lenient one; a flatter line, an inconsistent one.' : ' Press "Show the truth" to see each appraiser\'s true acceptance curve.'}`;
+    // truth
+    const tt = $('attrTruth'); tt.hidden = !S.truthShown;
+    if (S.truthShown) {
+      const desc = t2 => t2.shift > 0 ? `strict: limits pulled in by ${fmtU(t2.shift)}` : t2.shift < 0 ? `lenient: accepts up to ${fmtU(-t2.shift)} outside` : t2.g > S.m.grey * 1.01 + 1e-12 ? `inconsistent: grey zone σ ${fmtU(t2.g)}` : `calls on the limit, grey zone σ ${fmtU(t2.g)}`;
+      const sp = S.m.sigmaP;
+      tt.innerHTML = `<h3 style="margin:0">The truth behind this study</h3><table><tr><th>Appraiser</th><th>How they really call</th><th style="text-align:right">Effectiveness: study / true</th><th style="text-align:right">Miss: study / true</th><th style="text-align:right">False alarm: study / true</th><th style="text-align:right">In production, per 1,000: escapes / good rejected</th></tr>
+        ${A.apps.map((a, j) => { const e = attrExpect(j), t2 = tr[j], dd = MSA.decisionsWith(S.nominal, sp, lsl, usl, v => MSA.attrPAccept(v, lsl, usl, t2.shift, t2.g)); const f1 = v => v < 0.05 ? '< 0.1' : v.toFixed(v < 10 ? 1 : 0); return `<tr><td>${APP_NAME[j]}</td><td class="mini">${desc(t2)}</td><td class="n">${pctA(a.eff)} / ${pctA(e.eff)}</td><td class="n">${pctA(a.miss)} / ${pctA(e.miss)}</td><td class="n">${pctA(a.fa)} / ${pctA(e.fa)}</td><td class="n">${f1(dd.badAccepted)} / ${f1(dd.goodRejected)}</td></tr>`; }).join('')}</table>
+        <div class="hint">"True" uses each appraiser's real chance of accepting each study part: what the study would show on average if repeated many times with these parts. Production figures use your real process spread: far fewer parts sit near the limits there, so rates per 1,000 parts are much lower than the study's rates per bad or good part.</div>`;
+    }
+    // what now
+    const items = [];
+    if (thin) items.push(['w', 'Pick parts that test the call', 'Include clearly good and clearly bad parts, and plenty close to both limits, on both sides of each. Measure each with a better (variable) gauge to set the reference. About a third or more should be bad.']);
+    const marg = [];
+    A.apps.forEach((a, j) => {
+      if (cls[j].miss === 'bad') items.push(['b', `${APP_NAME[j]} accepts bad parts (miss rate ${pctA(a.miss)})`, 'These are escapes to your customer, the most serious failure. Check how the gauge is used (force, angle, cleanliness) or what the inspector accepts as "just OK". Retrain with limit samples on both sides of each limit.']);
+      if (cls[j].fa === 'bad') items.push(['b', `${APP_NAME[j]} rejects good parts (false alarm rate ${pctA(a.fa)})`, 'Scrap and rework you pay for, and often a sign of an inspector who was blamed for an escape before. Agree the limit with limit samples and make the criterion objective.']);
+      if (cls[j].miss === 'warn' || cls[j].fa === 'warn' || cls[j].eff === 'warn') marg.push(APP_NAME[j]);
+      if (a.within < 0.85 && S.attrR > 1) items.push(['w', `${APP_NAME[j]} does not agree with themselves on ${pctA(1 - a.within)} of the parts`, 'Same part, different call. Look at lighting, viewing distance, gauge handling, fatigue and time pressure. A call that depends on the moment is not a method yet.']);
+    });
+    if (!thin && marg.length) items.push(['w', `Marginal rates for ${marg.join(', ')}`, 'Close to the guideline, not clearly over it. Run again to see how much one study moves; with a few more borderline parts or trials the picture gets sharper.']);
+    if (!thin && S.attrA > 1 && A.apps.every((_, j) => cls[j].miss === 'bad' || cls[j].fa === 'bad')) items.push(['w', 'Everyone struggles near the limits', 'If all inspectors make wrong calls on the same parts, the gauge or the criterion is the problem, not the people: a worn go/no-go gauge, a vague visual standard. Improve the gauge, use clearer limit samples, or measure with a variable gauge.']);
+    if (A.pairK.some(p => !isFinite(p.k)) || A.apps.some(a => !isFinite(a.kRef.k))) items.push(['w', 'Some kappas cannot be calculated', 'Kappa needs both calls in the data. When an inspector, or the reference, made only one kind of call, there is nothing to compare: the parts did not test the call.']);
+    items.push(['', 'Percent agreement or kappa?', 'If almost every part is good, two inspectors who accept everything agree on almost every part, yet show nothing about their judgement. Kappa removes the agreement you would get by chance. Read both, and the miss rate first.']);
+    items.push(['', 'An attribute gauge cannot say how close a part is', 'A go/no-go call loses the size. For critical characteristics, or when a process runs close to a limit, a variable gauge tells you far more from far fewer parts.']);
+    $('attrDiag').innerHTML = '<h3 style="margin:14px 0 0">It failed, now what? Reading the result</h3>' + items.map(([c, t2, s2]) => `<div class="item ${c}"><b>${t2}</b><span>${s2}</span></div>`).join('');
+    // calculation: appraiser A against the reference
+    const a0 = A.apps[0], T = a0.kRef.t, Nn = a0.kRef.N;
+    $('attrCalc').innerHTML = `<div class="calc-col w" style="margin-top:8px;"><h5>Kappa: appraiser A against the reference (every trial counts)</h5>
+      <div class="tblwrap"><table class="tbl" style="max-width:360px"><tr><th></th><th>Ref good</th><th>Ref bad</th></tr><tr><td>A accepts</td><td>${T[1][1]}</td><td>${T[1][0]}</td></tr><tr><td>A rejects</td><td>${T[0][1]}</td><td>${T[0][0]}</td></tr></table></div>
+      <div class="f">Observed agreement po = (${T[1][1]} + ${T[0][0]}) / ${Nn} = <b>${a0.kRef.po.toFixed(3)}</b></div>
+      <div class="f">Chance agreement pe = P(A accepts) × P(ref good) + P(A rejects) × P(ref bad) = <b>${a0.kRef.pe.toFixed(3)}</b></div>
+      <div class="f">Kappa = (po − pe) / (1 − pe) = <b>${kap(a0.kRef.k)}</b></div>
+      <div class="f">Effectiveness = right calls / all calls = ${T[1][1] + T[0][0]} / ${Nn} = <b>${pctA(a0.eff)}</b></div>
+      <div class="f">Miss rate = bad parts accepted / calls on bad parts = ${T[1][0]} / ${T[1][0] + T[0][0]} = <b>${pctA(a0.miss)}</b> · False alarm rate = good parts rejected / calls on good parts = ${T[0][1]} / ${T[1][1] + T[0][1]} = <b>${pctA(a0.fa)}</b></div>
+      <div class="x">Between appraisers, kappa pairs trial 1 with trial 1, trial 2 with trial 2, and so on. Within an appraiser, kappa compares the trials on each part (Fleiss' kappa). "Agrees with self" counts a part only when every trial gave the same call; "agrees with reference" only when every call was also right. Other methods exist (signal detection, the analytic method); they are not shown here.</div></div>`;
+    // the calls
+    let dt = '<table class="tbl"><tr><th>Part</th><th>True size</th><th>Ref</th>';
+    for (let j = 0; j < S.attrA; j++) for (let k = 0; k < S.attrR; k++) dt += `<th style="color:${APP_COL[j]}">${APP_NAME[j]}${k + 1}</th>`;
+    dt += '</tr>';
+    parts.map((_, i) => i).sort((i, k) => parts[i] - parts[k]).forEach(i => { dt += `<tr><td>P${i + 1}</td><td>${fmt(parts[i], 1)}</td><td>${AG.ref[i] ? 'G' : 'B'}</td>${AG.d[i].map(c => c.map(v => `<td${v !== AG.ref[i] ? ' style="font-weight:700;color:var(--critical)"' : ''}>${v ? 'A' : 'R'}</td>`).join('')).join('')}</tr>`; });
+    $('attrData').innerHTML = dt + '</table><p class="calc-note">G / B: good or bad by reference. A / R: accept or reject. Wrong calls in bold red. Sorted by true size.</p>';
+  }
 
   // ---------- Location: shared chart for repeated readings of one master ----------
   function distChart(id, reads, ref, avg, lo, hi, trueAvg) {
@@ -2071,6 +2653,18 @@ const MSA = (() => {
     { tab: 'stab', k: 'sgood', label: 'Stable gauge', t: 'Nothing changes over the weeks', w: 'Points wander inside the limits with no runs or trends.', apply: () => {} },
     { tab: 'stab', k: 'sdrift', label: 'Slow zero drift', t: 'The zero creeps up over the weeks', w: 'Watch the X̄ chart: a run on one side, then points beyond the limit. The R chart stays calm.', apply: T => { S.m.drift = T * 0.25; } },
     { tab: 'stab', k: 'swear', label: 'Gauge getting worse', t: 'Contact faces wearing, dirt building up', w: 'Watch the R chart: ranges grow towards the end of the run and break through the upper limit. The X̄ chart gets jumpier too, because each check average scatters more.', apply: () => { S.m.wear = 3; S.seed = 13; } },
+    { tab: 'dest', k: 'dgood', label: 'Uniform batches', t: 'Pieces in each batch are nearly identical', w: 'Repeatability is close to the tester\'s own scatter. Show the truth: the split bar is mostly "the gauge".', apply: () => { S.m.withinB = S.m.sigmaE * 0.3; } },
+    { tab: 'dest', k: 'dmix', label: 'Pieces in a batch differ', t: 'Samples taken from different cavities and furnace positions', w: 'Repeatability jumps and %GRR looks poor, but the tester did not change. Show the truth: most of the "repeatability" is the material.', apply: () => { S.m.withinB = S.m.sigmaE * 3; } },
+    { tab: 'dest', k: 'dnest', label: 'Each appraiser has own batches', t: 'Two shifts each test their own production', w: 'The nested design. The appraiser difference is mixed with which batches each one got, so it moves a lot from run to run: press "Run again" a few times.', apply: () => { S.dDesign = 'nested'; } },
+    { tab: 'dest', k: 'done', label: 'One appraiser prepares samples differently', t: 'Appraiser C polishes or clamps differently', w: 'Reproducibility rises and C\'s readings sit apart in the chart. Sample preparation is part of the measurement method.', apply: T => { S.m.appMode = 'one'; S.m.appSigma = T / 12; } },
+    { tab: 'dest', k: 'dalike', label: 'Batches too alike', t: 'All batches from one week of a very stable process', w: 'Batch-to-batch variation is small, so %GRR vs total variation rises and ndc falls while %GRR vs tolerance hardly moves. Same lesson as "Parts from one batch" in Gauge R&R.', apply: () => { S.m.sigmaP = S.m.sigmaP / 4; } },
+    { tab: 'attr', k: 'agood', label: 'Good inspectors, good parts', t: 'Trained inspectors, parts chosen to test the call', w: 'Note the miss and false alarm rates and the kappas. Wrong calls, if any, sit right next to the limits.', apply: () => {} },
+    { tab: 'attr', k: 'astrict', label: 'One strict inspector', t: 'C rejects parts that are just inside the limits', w: 'C\'s false alarm rate rises, the miss rate does not. In the grey-zone charts, C\'s marks drop on the good side.', apply: () => { S.m.attrApp = 'strict'; } },
+    { tab: 'attr', k: 'alenient', label: 'One lenient inspector', t: 'C passes parts that are just outside the limits', w: 'C\'s miss rate rises: escapes. Then open "Your decisions" with the attribute gauge to see them per 1,000 parts.', apply: () => { S.m.attrApp = 'lenient'; } },
+    { tab: 'attr', k: 'aincons', label: 'One inconsistent inspector', t: 'C gives the same part different calls', w: '"Agrees with self" drops for C, and both wrong-call rates rise. Look for lighting, fatigue or handling.', apply: () => { S.m.attrApp = 'incons'; } },
+    { tab: 'attr', k: 'aprod', label: 'Parts straight from production', t: 'No parts picked near the limits', w: 'Almost every part is clearly good. Agreement looks excellent, yet the study never tested a hard call. The verdict says so.', apply: () => { S.attrSel = 'prod'; } },
+    { tab: 'attr', k: 'aborder', label: 'Only borderline parts', t: 'Every part is a hard call', w: 'All inspectors look worse than in daily work. Good for training, misleading for accepting the inspection.', apply: () => { S.attrSel = 'border'; } },
+    { tab: 'attr', k: 'agrey', label: 'Worn go/no-go gauge', t: 'A wide grey zone for everyone', w: 'All inspectors make wrong calls on the same borderline parts: the gauge is the problem, not the people.', apply: T => { S.m.grey = T / 10; } },
     { tab: 'stab', k: 'stemp', label: 'Temperature changes day to day', t: 'No temperature control in the inspection area', w: 'The X̄ chart jumps from day to day. Limits from these checks are wide, and the gauge looks "stable" but poor.', apply: T => { S.m.tempSigma = T / 25; } },
   ];
   function buildScen() {
@@ -2080,11 +2674,12 @@ const MSA = (() => {
       box.addEventListener('click', e => { const b = e.target.closest('.chip'); if (b) applyScen(b.dataset.k); });
     });
   }
-  function studyDefaults() { S.selection = 'range'; S.p = 10; S.a = 3; S.r = 3; S.method = 'xr'; S.biasRef = null; S.biasN = 10; S.linN = 10; S.stabK = 25; S.stabN = 3; }
+  function studyDefaults() { S.selection = 'range'; S.p = 10; S.a = 3; S.r = 3; S.method = 'xr'; S.biasRef = null; S.biasN = 10; S.linN = 10; S.stabK = 25; S.stabN = 3; S.dDesign = 'crossed'; S.dB = 10; S.dBn = 5; S.dA = 3; S.dR = 3; S.attrN = 50; S.attrA = 3; S.attrR = 3; S.attrSel = 'mix'; }
   function applyScen(k) {
     const s = SCEN.find(x => x.k === k);
     if (S.scenPreset) { loadPreset(S.scenPreset); S.scenPreset = null; }
     if (s.preset) { S.scenPreset = S.preset; loadPreset(s.preset); }
+    if (s.tab === 'dest' && !isDestr()) { loadPreset('case'); S.destSwitched = true; }
     resetFloor(); studyDefaults();
     s.apply(S.T); S.scen = k;
     setTab(s.tab, true);
@@ -2101,14 +2696,16 @@ const MSA = (() => {
   }
 
   // ---------- Tabs ----------
-  const TAB_SET = { basics: 'none', prep: 'grr', grr: 'grr', bias: 'bias', lin: 'lin', stab: 'stab', dec: 'none' };
+  const TAB_SET = { basics: 'none', prep: 'grr', grr: 'grr', bias: 'bias', lin: 'lin', stab: 'stab', dest: 'dest', attr: 'attr', dec: 'none' };
   function setTab(t, quiet) {
     S.tab = t;
+    // a destructive study needs a destructive test: switch the example if needed
+    if (t === 'dest' && !isDestr()) { S.scenPreset = null; clearScen(); loadPreset('case'); S.destSwitched = true; }
     document.querySelectorAll('#tabs button').forEach(b => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
     document.querySelectorAll('.tabpanel').forEach(p => { p.hidden = p.id !== 'tab-' + t; });
     const set = TAB_SET[t];
     document.querySelectorAll('.setblock').forEach(b => { b.hidden = b.id !== 'set-' + set; });
-    $('studyHead').textContent = '2. The study' + ({ grr: ': gauge R&R', bias: ': bias', lin: ': linearity', stab: ': stability' }[set] || '');
+    $('studyHead').textContent = '2. The study' + ({ grr: ': gauge R&R', bias: ': bias', lin: ': linearity', stab: ': stability', dest: ': destructive', attr: ': accept / reject' }[set] || '');
     syncFloor();
     if (!quiet) update();
   }
@@ -2129,7 +2726,7 @@ const MSA = (() => {
   document.querySelector('.qmap').addEventListener('click', e => { const b = e.target.closest('button[data-go]'); if (b) { setTab(b.dataset.go); $('tabs').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 
   // ---------- Learn step by step ----------
-  function base(key = 'crimp') { loadPreset(key); studyDefaults(); S.seed = 11; S.truthShown = false; clearScen(); syncStudy(); }
+  function base(key = 'crimp') { loadPreset(key); studyDefaults(); S.seed = 11; S.truthShown = false; S.decGauge = 'var'; S.destSwitched = false; clearScen(); syncStudy(); }
   const STEPS = [
     { t: 'Every reading has two parts', tab: 'basics', set: () => base(),
       b: () => `<p>Every reading = <span class="tag">the part's true value</span> + <span class="tag">the measurement error</span>. You never see the true value; you only see readings.</p>
@@ -2189,8 +2786,37 @@ const MSA = (() => {
     { t: '% of total variation or % of tolerance?', tab: 'grr', set: () => { base(); S.m.sigmaP = S.T / 12; syncFloor(); },
       b: () => `<p>The process is now very capable. %GRR against total variation is <span class="num">${pc(RES.pctGRR)}</span>, against tolerance <span class="num">${pc(RES.tolGRR)}</span>.</p>
         <ul><li><b>% of total variation:</b> can this gauge see the process move? Needed for SPC and improvement.</li><li><b>% of tolerance:</b> can this gauge sort good from bad parts? Needed for final inspection.</li></ul>` },
+    { t: 'Destructive test: no second reading of the same piece', tab: 'dest', f: 'destSplit', set: () => base('case'),
+      b: () => `<p>Case depth by cross-section: each sample is cut, polished, etched and scrapped. So each appraiser gets <b>pieces from the same batch</b> (one heat-treat load) instead of the same part.</p>
+        <p>The study then works as before, with the batch in the part's place. Right now: <span class="num">%GRR ${pc(DS.pctGRR)}</span> of total variation, ndc <span class="num">${DS.ndc}</span>.</p>
+        <p>The catch: readings within a batch differ for two reasons, the tester's scatter <b>and</b> the pieces not being identical. The study cannot tell them apart; both land in "repeatability".</p>` },
+    { t: 'Guess: the pieces in each batch differ more', tab: 'dest', set: () => base('case'),
+      g: { q: 'Samples now come from different furnace positions, so pieces in one batch differ more. The tester is unchanged. What happens to the repeatability the study reports?', o: ['It rises', 'No change: the tester is the same', 'It falls'], a: 0,
+        apply: () => { S.m.withinB = S.m.sigmaE * 3; S.truthShown = true; syncFloor(); },
+        r: () => `Repeatability went to <b>${pc(DS.pctEV)}</b> of total variation and %GRR to <b>${pc(DS.pctGRR)}</b>. The truth panel now open below shows how much of it is the material. Fix the sampling before you replace a good tester.` },
+      b: () => `<p>A destructive study is only as good as its batches.</p>` },
+    { t: 'Shared batches or own batches?', tab: 'dest', set: () => { base('case'); S.dDesign = 'nested'; syncStudy(); },
+      b: () => `<p>When a batch is too small to share, each appraiser tests their own batches: the <b>nested</b> design (now selected under "Study design").</p>
+        <p>A gap between appraisers could then also be the batches they happened to get, so the appraiser estimate is rough. Press "Run again" a few times and watch reproducibility move; right now it is <span class="num">${pc(DS.pctRepro)}</span>.</p>` },
+    { t: 'Accept or reject: the attribute study', tab: 'attr', f: 'aGC', set: () => base(),
+      b: () => `<p>A go/no-go gauge or a visual check gives a call, not a number. ${S.attrN} parts, ${S.attrA} inspectors, ${S.attrR} trials each. Each part's reference call comes from measuring it with a better gauge.</p>
+        <ul><li><b>Effectiveness:</b> share of right calls (inspector A: ${pctA(AS.apps[0].eff)})</li><li><b>Miss rate:</b> bad parts accepted, your escapes</li><li><b>False alarm rate:</b> good parts rejected, your scrap</li><li><b>Kappa:</b> agreement after removing the agreement you would get by chance</li></ul>
+        <p class="note">The parts decide whether the study means anything: clearly good, clearly bad, and plenty close to both limits.</p>` },
+    { t: 'Guess: one inspector is lenient', tab: 'attr', set: () => base(),
+      g: { q: 'Inspector C passes parts that are just outside the limits. Which number rises for C?', o: ['Miss rate', 'False alarm rate', 'Neither: only kappa shows it'], a: 0,
+        apply: () => { S.m.attrApp = 'lenient'; syncFloor(); },
+        r: () => `C's miss rate went to <b>${pctA(AS.apps[S.attrA - 1].miss)}</b>; the false alarm rate is <b>${pctA(AS.apps[S.attrA - 1].fa)}</b>. Every miss is a bad part on its way to your customer. In the grey-zone charts, C's marks stay high on the bad side.` },
+      b: () => `<p>Two kinds of wrong call, with very different costs.</p>` },
+    { t: 'Guess: parts straight from production', tab: 'attr', set: () => { base(); S.m.attrApp = 'lenient'; syncFloor(); },
+      g: { q: 'Lenient inspector C is still on the team. Instead of picking parts, you take 50 straight from the line: almost all clearly good. How will the inspectors look?', o: ['Better than they really are', 'Worse than they really are', 'The same'], a: 0,
+        apply: () => { S.attrSel = 'prod'; syncStudy(); },
+        r: () => `Effectiveness is now <b>${pctA(MSA.mean(AS.apps.map(a => a.eff)))}</b> on average, lenient inspector included, because nobody had a hard call to make. The verdict says it cannot judge. Pick about a third or more bad parts, and plenty near both limits.` },
+      b: () => `<p>Part selection again, as in gauge R&amp;R, only with bigger consequences.</p>` },
     { t: 'What the gauge does to your decisions', tab: 'dec', set: () => { base(); S.m.fixture = 3; syncFloor(); },
       b: () => `<p>The fixture is now loose. The Cp you measure is lower than the true Cp, good parts near the limits get rejected, and some bad parts get accepted. Accepted bad parts are your escapes; rejected good parts are scrap you pay for. Both come from the gauge, not the machine.</p>` },
+    { t: 'Escapes from a go/no-go gauge', tab: 'dec', set: () => { base(); S.decGauge = 'attr'; S.m.attrApp = 'lenient'; syncFloor(); },
+      b: () => `<p>The same view for the attribute gauge, with lenient inspector C sharing the work. The tiles count escapes and rejected good parts per 1,000 parts from your process.</p>
+        <p>Switch "Which gauge makes the call?" to compare with the variable gauge, and try a guard band: for a go/no-go gauge that means a tighter gauge or stricter limit samples.</p>` },
     { t: 'Your turn', tab: 'grr', set: () => base(),
       b: () => `<p>You are in free play. Try:</p>
         <ul><li>Pick your own process example and change one shop-floor cause at a time. Faded settings do not affect the tab you are on.</li><li>Use the situations in each tab, then "Show the truth".</li><li>Press "Run again" with the same settings: one study is one estimate.</li></ul>
@@ -2201,7 +2827,9 @@ const MSA = (() => {
     { k: 'start', name: 'Start', from: 0, to: 2, tabs: ['basics', 'prep'] },
     { k: 'loc', name: 'Location', from: 3, to: 6, tabs: ['bias', 'lin', 'stab'] },
     { k: 'width', name: 'Width: gauge R&R', from: 7, to: 14, tabs: ['grr'] },
-    { k: 'result', name: 'Result', from: 15, to: 16, tabs: ['dec'] },
+    { k: 'dest', name: 'Width: destructive', from: 15, to: 17, tabs: ['dest'] },
+    { k: 'attr', name: 'Attribute', from: 18, to: 20, tabs: ['attr'] },
+    { k: 'result', name: 'Result', from: 21, to: 23, tabs: ['dec'] },
   ];
   const pathOf = i => PATHS.find(p => i >= p.from && i <= p.to);
   function enterStep(i) {
@@ -2262,17 +2890,19 @@ const MSA = (() => {
     if (b.dataset.act === 'reveal') { S.revealed = true; update(); }
   });
   $('gbSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.gb = +b.dataset.v; update(); });
+  $('decGaugeSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.decGauge = b.dataset.v; syncFloor(); update(); });
+  $('preset').addEventListener('change', () => { S.destSwitched = false; });
 
   // ---------- Trainer mode: results hidden until revealed ----------
   $('trainerBtn').addEventListener('click', () => { S.trainer = !S.trainer; S.revealed = false; update(); });
   document.addEventListener('click', e => { const m = document.querySelector('.trainer-menu'); if (m.open && !m.contains(e.target)) m.open = false; });
   let lastKey = '';
   function stateKey() {
-    return JSON.stringify([S.preset, S.nominal, S.T, S.res, S.m, S.p, S.a, S.r, S.selection, S.method, S.biasRef, S.biasN, S.linN, S.stabK, S.stabN, S.seed, S.gb]);
+    return JSON.stringify([S.preset, S.nominal, S.T, S.res, S.m, S.p, S.a, S.r, S.selection, S.method, S.biasRef, S.biasN, S.linN, S.stabK, S.stabN, S.seed, S.gb, S.dDesign, S.dB, S.dBn, S.dA, S.dR, S.attrN, S.attrA, S.attrR, S.attrSel, S.decGauge]);
   }
 
   // ---------- Shareable link: the URL keeps the example, tab and every setting ----------
-  const NUM_M = ['sigmaP', 'sigmaE', 'fixture', 'formFrac', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'linSlope', 'drift', 'wear'];
+  const NUM_M = ['sigmaP', 'sigmaE', 'fixture', 'formFrac', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'linSlope', 'drift', 'wear', 'withinB', 'grey'];
   function writeHash() {
     if (S.learn >= 0) return;
     const q = new URLSearchParams();
@@ -2284,7 +2914,9 @@ const MSA = (() => {
     const D = floorDefaults(P);
     NUM_M.forEach(k => { if (Math.abs(S.m[k] - D[k]) > 1e-15) q.set(k, +(+S.m[k]).toPrecision(5)); });
     if (S.m.appMode !== 'all') q.set('appMode', S.m.appMode);
-    const st = { p: [S.p, 10], a: [S.a, 3], r: [S.r, 3], sel: [S.selection, 'range'], meth: [S.method, 'xr'], bn: [S.biasN, 10], ln: [S.linN, 10], sk: [S.stabK, 25], sn: [S.stabN, 3], gb: [S.gb, 0], seed: [S.seed, 11] };
+    if (S.m.attrApp !== 'same') q.set('attrApp', S.m.attrApp);
+    const st = { p: [S.p, 10], a: [S.a, 3], r: [S.r, 3], sel: [S.selection, 'range'], meth: [S.method, 'xr'], bn: [S.biasN, 10], ln: [S.linN, 10], sk: [S.stabK, 25], sn: [S.stabN, 3], gb: [S.gb, 0], seed: [S.seed, 11],
+      dd: [S.dDesign, 'crossed'], db: [S.dB, 10], dbn: [S.dBn, 5], da: [S.dA, 3], dr: [S.dR, 3], an: [S.attrN, 50], aa: [S.attrA, 3], ar: [S.attrR, 3], asel: [S.attrSel, 'mix'], dg: [S.decGauge, 'var'] };
     Object.entries(st).forEach(([k, [v, d]]) => { if (v !== d) q.set(k, v); });
     if (S.biasRef != null) q.set('bref', S.biasRef);
     if (S.truthShown) q.set('truth', 1);
@@ -2300,11 +2932,15 @@ const MSA = (() => {
     S.nominal = num('nom', S.nominal); S.T = Math.max(1e-9, num('tol', S.T)); S.res = Math.max(0, num('res', S.res)); S.dec = decOf(S.res > 0 ? S.res : S.T / 100);
     NUM_M.forEach(k => { if (q.has(k)) S.m[k] = num(k, S.m[k]); });
     if (q.get('appMode') === 'one') S.m.appMode = 'one';
+    if (['strict', 'lenient', 'incons'].includes(q.get('attrApp'))) S.m.attrApp = q.get('attrApp');
     const int = (k, d, ok) => { const v = parseInt(q.get(k), 10); return ok.includes(v) ? v : d; };
     S.p = int('p', 10, [5, 6, 7, 8, 9, 10]); S.a = int('a', 3, [2, 3]); S.r = int('r', 3, [2, 3]);
     S.selection = ['range', 'batch', 'extremes'].includes(q.get('sel')) ? q.get('sel') : 'range';
     S.method = q.get('meth') === 'anova' ? 'anova' : 'xr';
     S.biasN = int('bn', 10, [10, 15, 20, 25, 30]); S.linN = int('ln', 10, [6, 8, 10, 12]); S.stabK = int('sk', 25, [20, 25, 30]); S.stabN = int('sn', 3, [3, 4, 5]);
+    S.dDesign = q.get('dd') === 'nested' ? 'nested' : 'crossed'; S.dB = int('db', 10, [5, 6, 7, 8, 9, 10]); S.dBn = int('dbn', 5, [3, 4, 5, 6, 7, 8]); S.dA = int('da', 3, [2, 3]); S.dR = int('dr', 3, [2, 3]);
+    S.attrN = int('an', 50, [20, 30, 50, 75, 100]); S.attrA = int('aa', 3, [2, 3]); S.attrR = int('ar', 3, [2, 3]);
+    S.attrSel = ['mix', 'prod', 'border'].includes(q.get('asel')) ? q.get('asel') : 'mix'; S.decGauge = q.get('dg') === 'attr' ? 'attr' : 'var';
     S.gb = int('gb', 0, [0, 1, 2, 3]); S.seed = Math.max(1, Math.min(2e9, num('seed', 11)));
     if (q.has('bref')) S.biasRef = num('bref', null);
     S.truthShown = q.get('truth') === '1'; S.trainer = q.get('trainer') === '1';
@@ -2350,6 +2986,8 @@ const MSA = (() => {
     if (t === 'bias') renderBias();
     if (t === 'lin') renderLin();
     if (t === 'stab') renderStab();
+    if (t === 'dest') renderDest();
+    if (t === 'attr') renderAttr();
     if (t === 'dec') renderDecisions();
     if (S.learn >= 0) renderLearn();
   }
@@ -2372,7 +3010,7 @@ const MSA = (() => {
   if (!readHash()) loadPreset('crimp');
   setTab(S.tab || 'basics', true);
   renderAll();
-  window.__msa = { S, get G() { return G; }, get XR() { return XR; }, get AN() { return AN; }, get BS() { return BS; }, get LS() { return LS; }, get SS() { return SS; }, enterStep, applyScen, setTab, update: () => renderAll() };
+  window.__msa = { S, get G() { return G; }, get XR() { return XR; }, get AN() { return AN; }, get BS() { return BS; }, get LS() { return LS; }, get SS() { return SS; }, get DS() { return DS; }, get DG() { return DG; }, get AS() { return AS; }, get AG() { return AG; }, nSteps: STEPS.length, enterStep, applyScen, setTab, update: () => renderAll() };
 })();
 </script>
 <footer class="k-foot">
