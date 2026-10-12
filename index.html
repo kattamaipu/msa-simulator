@@ -346,6 +346,14 @@
   .gl { border-bottom: 1px dotted currentColor; cursor: help; }
   .gl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
   .glpop { position: absolute; z-index: 40; background: #16201B; color: #fff; font-size: 12.5px; font-weight: 400; line-height: 1.45; padding: 8px 10px; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+  .bulls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
+  .bulls.two { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 66%; }
+  @media (max-width: 560px) { .bulls, .bulls.two { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: none; } }
+  .bull { text-align: center; font-size: 12px; color: var(--text-2); }
+  .bull svg { display: block; width: 100%; max-width: 170px; height: auto; margin: 0 auto 4px; }
+  .bull b { color: var(--text); }
+  .layout > main, .layout > aside, .tabpanel, .stack > * { min-width: 0; }
+  .tbl th { white-space: normal; }
   /* hover values */
   .ctip { position: absolute; z-index: 4; pointer-events: none; background: #16201B; color: #fff; font-size: 11.5px; line-height: 1.35; padding: 5px 8px; border-radius: 6px; max-width: 200px; white-space: normal; box-shadow: 0 2px 6px rgba(0,0,0,.18); }
   .ctip b { color: #fff; }
@@ -586,6 +594,7 @@
         <div class="reveal-cover"><b>Results are hidden (trainer mode).</b> Ask the team first: what will this study show, and why? <button class="btn primary" data-act="reveal">Reveal results</button></div>
         <div class="res">
         <div id="resOut"></div>
+        <div class="chartbox" style="margin-top:14px"><div class="chart-title">Bull's-eye: where each appraiser's readings land</div><div class="bulls" id="bulls"></div><div class="cap" id="bullCap"></div></div>
         <div class="truth" id="truthOut" hidden></div>
         <div class="charts">
           <div class="chartbox"><div class="chart-title">Range chart by appraiser: is each appraiser consistent?</div><div class="canvas-box"><canvas id="rC"></canvas></div><div class="cap" id="rCap"></div></div>
@@ -708,11 +717,12 @@
         </div>
         <div class="cap" id="decCap" style="font-size:13px;margin-top:8px;color:var(--text-2);"></div>
         </div>
+        <div class="rec" style="margin-top:14px;font-size:13px;">Want your team to run these studies on your own gauges and parts, and act on the results? <a href="https://kattamaipu.com/training/msa/">See how we run MSA training</a> or <a href="https://kattamaipu.com/contact/?topic=MSA+training">let's talk about your measurement questions</a>.</div>
       </section>
     </main>
   </div>
   <footer>
-    <p>The study types follow the approach of the AIAG MSA reference manual: gauge R&amp;R by the average and range method and by ANOVA, the range method as a quick check, bias by the independent sample method (t-test), linearity by regression with confidence bands, and stability on an X̄ and R chart. Settings that are our own choice: in ANOVA the interaction is pooled when its p-value is above 0.25 (the manual advises a high significance level but gives no value); stability limits come from the first 10 checks. Acceptance guidance: %GRR under 10% acceptable; 10% to 30% may be acceptable depending on the application, cost and customer; over 30% not acceptable; ndc 5 or more. Your customer's specific requirements come first.</p>
+    <p>The study types follow the approach of the AIAG MSA reference manual: gauge R&amp;R by the average and range method and by ANOVA, the range method as a quick check, bias by the independent sample method (t-test), linearity by regression with confidence bands, and stability on an X̄ and R chart. Settings that are our own choice: in ANOVA the interaction is pooled when its p-value is above 0.25 (the manual advises a high significance level but gives no value); stability limits come from the first 15 checks. Acceptance guidance: %GRR under 10% acceptable; 10% to 30% may be acceptable depending on the application, cost and customer; over 30% not acceptable; ndc 5 or more. Your customer's specific requirements come first.</p>
     <p>Kattamaipu is independent and not affiliated with AIAG. Please use a licensed copy of the manual. This is a learning tool, not validated MSA software: use your own validated method for records and PPAP.</p>
   </footer>
 </div>
@@ -1095,19 +1105,18 @@ const MSA = (() => {
     }
     return { sub, truth: { biasStart: b, biasEnd: b + (m.drift || 0), sigmaStart: sE, sigmaEnd: sE * (1 + (m.wear || 0)) } };
   }
-  function stability(sub, base = 10) {
+  function stability(sub, base = sub.length) {
     const n = sub[0].length, xb = sub.map(mean), rg = sub.map(range);
-    const nb = Math.min(base, sub.length); // limits from the first checks, later checks judged against them
+    const nb = Math.min(base, sub.length); // limits from the first nb checks (default: all, as in a first study)
     const xbb = mean(xb.slice(0, nb)), rb = mean(rg.slice(0, nb)), [A, D3, D4v] = SPC[n];
     const L = { ucl: xbb + A * rb, lcl: xbb - A * rb, cl: xbb, uclR: D4v * rb, lclR: D3 * rb, rb };
     const sig = [];
-    xb.forEach((v, i) => { if (v > L.ucl || v < L.lcl) sig.push({ i, chart: 'X̄', rule: 'beyond a control limit' }); });
-    rg.forEach((v, i) => { if (v > L.uclR) sig.push({ i, chart: 'R', rule: 'beyond the range limit' }); });
+    xb.forEach((v, i) => { if (v > L.ucl || v < L.lcl) sig.push({ i, chart: 'X̄', rule: 'beyond a control limit', strong: true }); });
+    rg.forEach((v, i) => { if (v > L.uclR) sig.push({ i, chart: 'R', rule: 'beyond the range limit', strong: true }); });
     let run = 0, side = 0;
     xb.forEach((v, i) => { const s2 = v > xbb ? 1 : v < xbb ? -1 : 0; run = s2 && s2 === side ? run + 1 : (s2 ? 1 : 0); side = s2; if (run === 7) sig.push({ i, chart: 'X̄', rule: '7 in a row on one side' }); });
     let tr = 0, dir = 0;
     for (let i = 1; i < xb.length; i++) { const d = xb[i] > xb[i - 1] ? 1 : xb[i] < xb[i - 1] ? -1 : 0; tr = d && d === dir ? tr + 1 : (d ? 1 : 0); dir = d; if (tr === 6) sig.push({ i, chart: 'X̄', rule: '7 in a row going one way' }); }
-    let rr = 0; rg.forEach((v, i) => { rr = v > rb ? rr + 1 : 0; if (rr === 7) sig.push({ i, chart: 'R', rule: '7 in a row above average range' }); });
     return { xb, rg, L, sig, n, base: nb, avgAll: mean(xb), sigmaR: rb / ({ 2: 1.128, 3: 1.693, 4: 2.059, 5: 2.326 }[n]) };
   }
 
@@ -1335,7 +1344,7 @@ const MSA = (() => {
     const gb = MSA.genBias(lm, ref, S.biasN, S.seed + 101); BT = gb.truth; BT.ref = ref; BS = MSA.biasStudy(gb.reads, ref); BS.reads = gb.reads;
     LREFS = [-0.8, -0.4, 0, 0.4, 0.8].map(f => S.nominal + f * S.T);
     const gl = MSA.genLinearity(lm, LREFS, S.linN, S.seed + 202); LT = gl.truth; LS = MSA.linearity(LREFS, gl.reads, S.m.sigmaP); LS.reads = gl.reads;
-    const gs = MSA.genStability(lm, S.nominal, S.stabK, S.stabN, S.seed + 310); ST = gs.truth; SS = MSA.stability(gs.sub); SS.sub = gs.sub;
+    const gs = MSA.genStability(lm, S.nominal, S.stabK, S.stabN, S.seed + 310); ST = gs.truth; SS = MSA.stability(gs.sub, 15); SS.sub = gs.sub;
   }
 
   // ---------- Canvas helpers ----------
@@ -1388,6 +1397,21 @@ const MSA = (() => {
     x.strokeStyle = col; x.setLineDash(dash || []); x.lineWidth = 1.2;
     x.beginPath(); x.moveTo(left, py); x.lineTo(right, py); x.stroke(); x.setLineDash([]);
     if (label) { x.fillStyle = col; x.textAlign = 'right'; x.fillText(label, right - 2, py - 7); }
+  }
+
+  // place text labels in rows so they never overlap: each label goes to the first row with room
+  function placeLabels(x, items, rows, L, R) {
+    const used = rows.map(() => []);
+    x.font = '11px "IBM Plex Sans", sans-serif'; x.textAlign = 'left';
+    for (const it of items) {
+      const w = x.measureText(it.text).width;
+      let left = Math.max(L, Math.min(R - w, it.x - w / 2));
+      let r = 0;
+      for (; r < rows.length; r++) if (!used[r].some(([a, b]) => left < b + 8 && left + w + 8 > a)) break;
+      if (r === rows.length) r = rows.length - 1;
+      used[r].push([left, left + w]);
+      x.fillStyle = it.col; x.fillText(it.text, left, rows[r]);
+    }
   }
 
   // Range and average charts: one block of parts per appraiser
@@ -1461,6 +1485,34 @@ const MSA = (() => {
     });
   }
 
+  // ---------- Gauge R&R bull's-eye: one target per appraiser ----------
+  function renderBulls() {
+    const vsTruth = S.truthShown, tol = 2 * S.T, outer = 0.2 * tol, Rpx = 66, C = 80;
+    const R = MSA.rng(S.seed * 13 + 5);
+    let html = '';
+    for (let j = 0; j < S.a; j++) {
+      const devs = [];
+      G.data.forEach((pt, i) => pt[j].forEach(v => devs.push(v - (vsTruth ? G.truth.parts[i] : XR.partAvg[i]))));
+      const mean = MSA.mean(devs), sd = Math.sqrt(devs.reduce((a, v) => a + (v - mean) ** 2, 0) / Math.max(1, devs.length - 1));
+      const k = Rpx / outer;
+      let dots = '', out = 0;
+      devs.forEach(d => {
+        let dx = d * k, dy = sd * k * R.n(); // horizontal = how far off; vertical spread only for visibility
+        const r = Math.hypot(dx, dy); if (r > Rpx + 6) { dx *= (Rpx + 6) / r; dy *= (Rpx + 6) / r; out++; }
+        dots += j === 1 ? `<rect x="${(C + dx - 2.4).toFixed(1)}" y="${(C + dy - 2.4).toFixed(1)}" width="4.8" height="4.8" fill="${APP_COL[j]}" opacity=".8"/>`
+          : j === 2 ? `<path d="M${(C + dx).toFixed(1)} ${(C + dy - 3).toFixed(1)} l2.8 5 h-5.6z" fill="${APP_COL[j]}" opacity=".8"/>`
+          : `<circle cx="${(C + dx).toFixed(1)}" cy="${(C + dy).toFixed(1)}" r="2.6" fill="${APP_COL[j]}" opacity=".8"/>`;
+      });
+      const ring = f => `<circle cx="${C}" cy="${C}" r="${(Rpx * f).toFixed(1)}" fill="none" stroke="#D5D2C4"/>`;
+      html += `<div class="bull"><svg viewBox="0 0 160 160" role="img" aria-label="Appraiser ${APP_NAME[j]}: offset ${fmt(mean)}, spread ${fmt(sd)}">
+        <circle cx="${C}" cy="${C}" r="${Rpx}" fill="#fff" stroke="#C9C5B4"/>${ring(0.5)}${ring(0.25)}
+        <line x1="${C}" y1="${C - Rpx}" x2="${C}" y2="${C + Rpx}" stroke="#EFEDE4"/><circle cx="${C}" cy="${C}" r="3.5" fill="#15603E"/>${dots}</svg>
+        <b>Appraiser ${APP_NAME[j]}</b><br>off-centre ${fmt(mean)} · spread σ ${fmt(sd)}${out ? `<br><span style="color:var(--critical)">${out} beyond the outer ring</span>` : ''}</div>`;
+    }
+    const box = $('bulls'); box.className = 'bulls' + (S.a === 2 ? ' two' : ''); box.innerHTML = html;
+    $('bullCap').innerHTML = `Each dot is one reading. Centre = ${vsTruth ? '<b>the true value of each part</b>, so any shift you see includes the gauge\'s <b>bias</b>' : '<b>each part\'s average over all appraisers</b> (press "Show the truth" to centre on the true values and see bias too)'}. Rings: ±5%, ±10% and ±20% of the tolerance. A tight cloud is good <b>repeatability</b>; a cloud pushed to one side is an appraiser who reads differently (<b>reproducibility</b>). Left–right is the measurement error; up–down spread is only for visibility.`;
+  }
+
   // ---------- A: map, targets and histogram ----------
   const TGT = [
     { k: 'ap', t: 'Accurate and precise', s: 'what you want', bias: 0, fix: 1 },
@@ -1483,12 +1535,12 @@ const MSA = (() => {
   }
   function renderMap() {
     [...$('targets').children].forEach((b, i) => { const t = TGT[i]; b.classList.toggle('on', Math.abs(S.m.bias - t.bias * S.T) < S.T * 0.02 && S.m.fixture === t.fix); });
-    const { x, w, h } = cv('histC', 170);
+    const { x, w, h } = cv('histC', 186);
     const R = MSA.rng(S.seed * 7 + 3), n = 40, sE = S.m.sigmaE * S.m.fixture, tv = S.nominal;
     const reads = []; for (let i = 0; i < n; i++) reads.push(MSA.roundTo(tv + S.m.bias + sE * R.n(), S.res));
     const m = MSA.mean(reads), sd = Math.sqrt(reads.reduce((s, v) => s + (v - m) ** 2, 0) / (n - 1));
     const span = Math.max(S.T * 0.12, Math.abs(S.m.bias) + 5 * Math.max(sE, S.res, S.T / 100));
-    const lo = tv - span, hi = tv + span, L = 14, Rr = w - 14, B = h - 26;
+    const lo = tv - span, hi = tv + span, L = 14, Rr = w - 14, B = h - 38;
     const px = v => L + (v - lo) / (hi - lo) * (Rr - L);
     // bins about half a σ wide (and a whole number of resolution steps), so normal scatter looks like one pile
     const half = Math.max(sd, S.res || 0, S.T / 1000) / 2;
@@ -1510,9 +1562,11 @@ const MSA = (() => {
       x.stroke();
     }
     x.strokeStyle = 'rgba(22,32,42,0.25)'; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(Rr, B + 0.5); x.stroke();
-    const vline = (v, col, label, dash, top) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); x.moveTo(p, 14); x.lineTo(p, B); x.stroke(); x.setLineDash([]); x.fillStyle = col; x.textAlign = 'center'; x.fillText(label, p, top ? 6 : B + 14); };
+    const labs = [];
+    const vline = (v, col, label, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); x.moveTo(p, 14); x.lineTo(p, B); x.stroke(); x.setLineDash([]); labs.push({ x: p, text: label, col }); };
     vline(tv, '#15603E', 'true value ' + fmt(tv, 1));
-    if (Math.abs(S.m.bias) > 0) vline(m, '#C2410C', 'average ' + fmt(m, 1), [4, 3], true);
+    if (Math.abs(S.m.bias) > 0) vline(m, '#C2410C', 'average ' + fmt(m, 1), [4, 3]);
+    placeLabels(x, labs, [B + 14, B + 28], L, Rr);
     const biasTxt = Math.abs(S.m.bias) > 0 ? `The average sits <b>${fmtU(m - tv)}</b> from the true value: that is <b>bias</b> (location).` : 'The average sits on the true value: <b>no bias</b>.';
     $('histCap').innerHTML = `${biasTxt} The spread (σ ≈ <b>${fmtU(sd)}</b>) is <b>repeatability</b> (width). Readings anywhere inside the grey ±3σ band (± ${fmt(3 * sd)}) are normal scatter, even the odd one far from the middle; the curve shows the expected shape. A gauge R&amp;R study sees only the spread.`;
   }
@@ -1551,16 +1605,19 @@ const MSA = (() => {
     const r = RES, v = MSA.verdict(r.pctGRR), vt = MSA.verdict(r.tolGRR);
     const isA = r.method === 'anova';
     const repro = isA ? r.repro : r.av;
-    const ndcCls = r.ndc >= 5 ? 'good' : 'bad';
+    const ndcOk = isFinite(r.ndc) && r.ndc >= 5, ndcCls = isFinite(r.ndc) ? (ndcOk ? 'good' : 'bad') : 'none';
     $('studyInfo').textContent = `${S.p} parts × ${S.a} appraisers × ${S.r} trials = ${S.p * S.a * S.r} readings · ${isA ? 'ANOVA' : 'Average and range'}`;
     const vEV = r.ev ** 2, vRe = repro ** 2;
     const main = r.grr > 0 ? (vEV >= vRe ? 'repeatability: the gauge, fixture or part' : 'reproducibility: the method or the appraisers') : '';
     const head = { good: 'This gauge is acceptable here', warn: 'May be acceptable: decide with your team and customer', bad: 'Not acceptable: improve the measurement first', none: '—' }[v.cls];
-    let tiles = `<div class="verdict ${vcls(v.cls)}">${head}<small>${main ? 'Bigger share of the gauge variation: ' + main + '.' : ''} Details and the "what now" advice are below the charts.</small></div>`;
+    const coarse = XR.zeroRanges >= 0.5;
+    let tiles = coarse
+      ? `<div class="verdict v-bad">Cannot judge: the gauge is too coarse<small>${Math.round(XR.zeroRanges * 100)}% of the repeat readings are identical, so the study sees almost no gauge variation. That is not a perfect gauge; it is a gauge that cannot see the variation. Check the resolution in "Before the study".</small></div>`
+      : `<div class="verdict ${vcls(v.cls)}">${head}<small>${main ? 'Bigger share of the gauge variation: ' + main + '.' : ''} Details and the "what now" advice are below the charts.</small></div>`;
     tiles += `<div class="tiles three">
       <div class="tile"><div class="k">${gl('grrTV', '%GRR vs total variation')}</div><div class="v">${pc(r.pctGRR)}</div><span class="${bcls(v.cls)}">${v.text}</span><div class="d">Can we use it for SPC and improvement?</div></div>
       <div class="tile"><div class="k">${gl('grrTol', '%GRR vs tolerance')}</div><div class="v">${pc(r.tolGRR)}</div><span class="${bcls(vt.cls)}">${vt.text}</span><div class="d">Can we use it to sort good from bad?</div></div>
-      <div class="tile"><div class="k">${gl('ndc', 'ndc')}</div><div class="v">${isFinite(r.ndc) ? r.ndc : '—'}</div><span class="${bcls(ndcCls)}">${r.ndc >= 5 ? '5 or more' : 'Below 5'}</span><div class="d">How many size groups the gauge can tell apart</div></div>
+      <div class="tile"><div class="k">${gl('ndc', 'ndc')}</div><div class="v">${isFinite(r.ndc) ? r.ndc : '—'}</div><span class="${bcls(ndcCls)}">${!isFinite(r.ndc) ? 'Cannot tell: no gauge variation seen' : ndcOk ? '5 or more' : 'Below 5'}</span><div class="d">How many size groups the gauge can tell apart</div></div>
     </div>`;
     let more = `<div class="tiles six">
       <div class="tile"><div class="k"><i style="background:var(--accent)"></i>${gl('ev', 'Repeatability (EV)')}</div><div class="v">${pc(r.pctEV)}</div><div class="d">σ ${fmtU(r.ev)} · same appraiser, same part</div></div>
@@ -1736,9 +1793,9 @@ const MSA = (() => {
     }
     // zoom on each limit: the wrong decisions are thin slivers on the main chart
     const zoom = (id, lim, acc, side) => {
-      const { x, w, h } = cv(id, 150);
+      const { x, w, h } = cv(id, 164);
       const span = Math.max(4 * sm + Math.abs(b) + g, S.T * 0.08);
-      const lo = lim - span, hi = lim + span, L = 10, R = w - 10, B = h - 22, T0 = 16, px = v => L + (v - lo) / (hi - lo) * (R - L);
+      const lo = lim - span, hi = lim + span, L = 10, R = w - 10, B = h - 34, T0 = 16, px = v => L + (v - lo) / (hi - lo) * (R - L);
       let ymax = 0; for (let i = 0; i <= 200; i++) { const v = lo + (hi - lo) * i / 200; ymax = Math.max(ymax, goodRej(v), badAcc(v)); }
       if (!(ymax > 0)) ymax = fTrue(lim) || 1;
       ymax *= 1.35; const py = v => B - Math.min(v, ymax) / ymax * (B - T0);
@@ -1750,9 +1807,11 @@ const MSA = (() => {
       x.stroke();
       area(goodRej, 'rgba(154,103,0,0.6)'); area(badAcc, 'rgba(207,34,46,0.7)');
       x.restore();
-      const vl = (v, col, lab, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash(dash); x.beginPath(); x.moveTo(p, 6); x.lineTo(p, B); x.stroke(); x.setLineDash([]); x.fillStyle = col; x.textAlign = 'center'; x.fillText(lab, p, B + 12); };
+      const labs = [];
+      const vl = (v, col, lab, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash(dash); x.beginPath(); x.moveTo(p, 6); x.lineTo(p, B); x.stroke(); x.setLineDash([]); labs.push({ x: p, text: lab, col }); };
       vl(lim, '#cf222e', side, [5, 4]);
       if (g > 0) vl(acc, '#9a6700', 'acceptance limit', [2, 3]);
+      placeLabels(x, labs, [B + 12, B + 25], L, R);
       x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
       x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText(side === 'LSL' ? '← bad' : 'good', L + 2, 8); x.textAlign = 'right'; x.fillText(side === 'LSL' ? 'good →' : 'bad →', R - 2, 8);
     };
@@ -1764,15 +1823,15 @@ const MSA = (() => {
 
   // ---------- Location: shared chart for repeated readings of one master ----------
   function distChart(id, reads, ref, avg, lo, hi, trueAvg) {
-    const { x, w, h } = cv(id, 200);
+    const { x, w, h } = cv(id, 222);
     const n = reads.length, sd = Math.sqrt(reads.reduce((a, v) => a + (v - avg) ** 2, 0) / Math.max(1, n - 1));
     const all = reads.concat([ref, ref + lo, ref + hi, avg - 3.5 * sd, avg + 3.5 * sd]).concat(trueAvg != null ? [trueAvg] : []); // lo/hi: interval of the bias
     let a0 = Math.min(...all), a1 = Math.max(...all); const pad = Math.max((a1 - a0) * 0.08, Math.max(S.res || 0, S.T / 400));
     a0 -= pad; a1 += pad;
-    const L = 14, R = w - 14, B = h - 26, px = v => L + (v - a0) / (a1 - a0) * (R - L);
+    const L = 14, R = w - 14, B = h - 40, T1 = 34, px = v => L + (v - a0) / (a1 - a0) * (R - L);
     // 95% interval of the average (= reference + interval of the bias)
-    x.fillStyle = 'rgba(194,65,12,0.12)'; x.fillRect(px(ref + lo), 16, Math.max(2, px(ref + hi) - px(ref + lo)), B - 16);
-    x.fillStyle = 'rgba(194,65,12,0.9)'; x.textAlign = 'center'; x.fillText('95% interval', (px(ref + lo) + px(ref + hi)) / 2, B + 14);
+    x.fillStyle = 'rgba(194,65,12,0.12)'; x.fillRect(px(ref + lo), T1, Math.max(2, px(ref + hi) - px(ref + lo)), B - T1);
+    const labs = [{ x: (px(ref + lo) + px(ref + hi)) / 2, text: '95% interval of the average', col: 'rgba(194,65,12,0.95)', top: true }];
     const half = Math.max(sd, S.res || 0, S.T / 1000) / 2;
     const bw = S.res > 0 ? S.res * Math.max(1, Math.round(half / S.res)) : half;
     const nb = Math.ceil((a1 - a0) / bw) + 1, cnt = new Array(nb).fill(0);
@@ -1780,17 +1839,19 @@ const MSA = (() => {
     const peak = sd > 0 ? n * bw / (sd * Math.sqrt(2 * Math.PI)) : 0;
     const mx = Math.max(...cnt, peak, 1), bwPx = Math.max(2, (px(a0 + bw) - px(a0)) * 0.85);
     x.fillStyle = 'rgba(194,65,12,0.7)';
-    cnt.forEach((c, k) => { if (!c) return; const hh = c / mx * (B - 34); const cx = px(a0 + k * bw); x.fillRect(cx - bwPx / 2, B - hh, bwPx, hh); tip(cx, B - hh, `${c} reading${c > 1 ? 's' : ''} at ${fmtU(a0 + k * bw, 1)}`); });
+    cnt.forEach((c, k) => { if (!c) return; const hh = c / mx * (B - T1 - 6); const cx = px(a0 + k * bw); x.fillRect(cx - bwPx / 2, B - hh, bwPx, hh); tip(cx, B - hh, `${c} reading${c > 1 ? 's' : ''} at ${fmtU(a0 + k * bw, 1)}`); });
     if (sd > 0) {
       x.strokeStyle = '#C2410C'; x.lineWidth = 1.5; x.beginPath();
-      for (let i = 0; i <= 120; i++) { const v = avg - 4 * sd + 8 * sd * i / 120, e = peak * Math.exp(-0.5 * ((v - avg) / sd) ** 2), yy = B - e / mx * (B - 34); i ? x.lineTo(px(v), yy) : x.moveTo(px(v), yy); }
+      for (let i = 0; i <= 120; i++) { const v = avg - 4 * sd + 8 * sd * i / 120, e = peak * Math.exp(-0.5 * ((v - avg) / sd) ** 2), yy = B - e / mx * (B - T1 - 6); i ? x.lineTo(px(v), yy) : x.moveTo(px(v), yy); }
       x.stroke();
     }
     x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
-    const vline = (v, col, label, dash, top) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); x.moveTo(p, 28); x.lineTo(p, B); x.stroke(); x.setLineDash([]); x.fillStyle = col; x.textAlign = 'center'; x.fillText(label, p, top ? 6 : B + 14); };
+    const vline = (v, col, label, dash, top) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 2; x.setLineDash(dash || []); x.beginPath(); x.moveTo(p, T1); x.lineTo(p, B); x.stroke(); x.setLineDash([]); labs.push({ x: p, text: label, col, top }); };
     vline(ref, '#2451B0', 'reference ' + fmt(ref, 0));
-    vline(avg, '#C2410C', 'average ' + fmt(avg, 1), [4, 3], true);
-    if (trueAvg != null) { vline(trueAvg, '#16201B', '', [1, 2]); x.fillStyle = '#16201B'; x.textAlign = 'left'; x.fillText('true average', px(trueAvg) + 4, 22); }
+    vline(avg, '#C2410C', 'average ' + fmt(avg, 1), [4, 3]);
+    if (trueAvg != null) vline(trueAvg, '#16201B', 'true average ' + fmt(trueAvg, 1), [1, 2], true);
+    placeLabels(x, labs.filter(l => l.top), [12, 26], L, R);
+    placeLabels(x, labs.filter(l => !l.top), [B + 14, B + 28], L, R);
   }
 
 
@@ -1934,9 +1995,14 @@ const MSA = (() => {
       x.fillStyle = 'rgba(21,96,62,0.08)'; x.fillRect(L0, y(cl + s1), R - L0, y(cl - s1) - y(cl + s1));
       if (y(cl - s1) - y(cl + s1) > 26) { x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText('±1σ', L0 + 3, y(cl + s1) + 7); x.fillText('±2σ', L0 + 3, y(cl + 2 * s1) + 7); }
     }
-    hline(x, y, cl, L0, R, '#16201B', [2, 3], label);
-    hline(x, y, ucl, L0, R, '#cf222e', [5, 4], 'UCL');
-    if (lcl != null && lcl > 0) hline(x, y, lcl, L0, R, '#cf222e', [5, 4], 'LCL');
+    hline(x, y, cl, L0, R, '#16201B', [2, 3], null);
+    hline(x, y, ucl, L0, R, '#cf222e', [5, 4], null);
+    if (lcl != null && lcl > 0) hline(x, y, lcl, L0, R, '#cf222e', [5, 4], null);
+    // right-hand labels, pushed apart so they never sit on each other
+    const rl = [{ y: y(ucl) - 7, t: 'UCL', c: '#cf222e' }, { y: y(cl) - 7, t: label, c: '#16201B' }];
+    if (lcl != null && lcl > 0) rl.push({ y: y(lcl) + 9, t: 'LCL', c: '#cf222e' });
+    rl.sort((a, b) => a.y - b.y); for (let k = 1; k < rl.length; k++) if (rl[k].y - rl[k - 1].y < 12) rl[k].y = rl[k - 1].y + 12;
+    x.textAlign = 'right'; rl.forEach(r => { x.fillStyle = r.c; x.fillText(r.t, R - 2, r.y); });
     if (refV != null) hline(x, y, refV, L0, R, '#2451B0', [1, 3], null);
     x.strokeStyle = '#15603E'; x.lineWidth = 1.4; x.beginPath();
     vals.forEach((v, i) => { const p = L0 + step * (i + 1); i ? x.lineTo(p, y(v)) : x.moveTo(p, y(v)); }); x.stroke();
@@ -1948,8 +2014,12 @@ const MSA = (() => {
     const s = SS, n = s.sig.length;
     $('stabInfo').textContent = `${S.stabK} checks × ${S.stabN} readings of one master (reference ${fmtU(S.nominal, 0)})`;
     const xs = s.sig.filter(g => g.chart === 'X̄'), rs = s.sig.filter(g => g.chart === 'R');
+    // graded: points beyond a limit are strong evidence; runs and trends alone can happen by chance
+    const strong = s.sig.filter(g => g.strong).length, pat = n - strong;
+    const where = `${xs.length ? 'The average reading is moving (X̄ chart). ' : ''}${rs.length ? 'The scatter is changing (R chart).' : ''}`;
     const v = n === 0 ? ['v-good', 'Stable: no signals', `Over ${S.stabK} checks, the master reads the same within normal scatter.`]
-      : ['v-bad', `Not stable: ${n} signal${n > 1 ? 's' : ''}`, `${xs.length ? 'The average reading is moving (X̄ chart). ' : ''}${rs.length ? 'The scatter is changing (R chart).' : ''}`];
+      : (strong >= 2 || (strong >= 1 && pat >= 1)) ? ['v-bad', `Not stable: ${n} signal${n > 1 ? 's' : ''}`, where]
+      : ['v-warn', 'Probably stable: one signal to check', `${where} A single signal can happen by chance on a stable gauge (roughly 1 chart in 4 of this length shows one). Find out what happened that day; act if it repeats.`];
     const bias = s.L.cl - S.nominal;
     $('stabOut').innerHTML = `<div class="verdict ${v[0]}">${v[1]}<small>${v[2]}</small></div>
       <div class="tiles">
@@ -1969,7 +2039,9 @@ const MSA = (() => {
     if (rs.length) items.push(['b', 'The scatter is changing', 'Contact faces wearing, dirt, a fixture working loose. Clean and service the gauge; repeat the gauge R&R study after the repair.']);
     if (!n) items.push(['', 'Keep checking', 'A stable chart is your evidence that bias and repeatability hold between calibrations. Use it to set (or extend) the calibration interval.']);
     items.push(['', 'The master must be stable too', 'Protect the master from wear and damage, keep it with the gauge at the same temperature, and give it its own calibration interval.']);
-    items.push(['', `Limits come from the first ${s.base} checks`, 'Like daily use: limits are set from a period when the gauge was known to be good, and every new check is judged against them. If the first checks are already disturbed, the limits are wrong too.']);
+    items.push(['', `Limits come from the first ${s.base} checks`, 'Like daily use: limits are set from a period when the gauge was known to be good, and every later check is judged against them. If the first checks are already disturbed, the limits are wrong too.']);
+    const distinctR = new Set(s.rg.map(v => v.toFixed(8))).size;
+    if (distinctR <= 3) items.push(['w', `The range chart shows only ${distinctR} different values`, 'The resolution is coarse compared with this gauge\'s scatter, so ranges jump in steps and signals are less reliable. A finer resolution makes this chart trustworthy.']);
     $('stabDiag').innerHTML = '<h3 style="margin:14px 0 0">Reading the result</h3>' + items.map(([c, t, d]) => `<div class="item ${c}"><b>${t}</b><span>${d}</span></div>`).join('') +
       (n ? '<div class="siglist">' + s.sig.slice(0, 8).map(g => `<div>Day ${g.i + 1}: ${g.chart} chart, ${g.rule}</div>`).join('') + (n > 8 ? `<div>… and ${n - 8} more</div>` : '') + '</div>' : '');
   }
@@ -1998,7 +2070,7 @@ const MSA = (() => {
     { tab: 'lin', k: 'lboth', label: 'Both', t: 'Wrong zero and uneven wear', w: 'Slope and offset together. Repair and recalibrate, then repeat bias and linearity.', apply: T => { S.m.bias = T * 0.1; S.m.linSlope = -0.12; } },
     { tab: 'stab', k: 'sgood', label: 'Stable gauge', t: 'Nothing changes over the weeks', w: 'Points wander inside the limits with no runs or trends.', apply: () => {} },
     { tab: 'stab', k: 'sdrift', label: 'Slow zero drift', t: 'The zero creeps up over the weeks', w: 'Watch the X̄ chart: a run on one side, then points beyond the limit. The R chart stays calm.', apply: T => { S.m.drift = T * 0.25; } },
-    { tab: 'stab', k: 'swear', label: 'Gauge getting worse', t: 'Contact faces wearing, dirt building up', w: 'Watch the R chart: ranges grow towards the end of the run, with a long run above the average range.', apply: () => { S.m.wear = 3; } },
+    { tab: 'stab', k: 'swear', label: 'Gauge getting worse', t: 'Contact faces wearing, dirt building up', w: 'Watch the R chart: ranges grow towards the end of the run and break through the upper limit. The X̄ chart gets jumpier too, because each check average scatters more.', apply: () => { S.m.wear = 3; S.seed = 13; } },
     { tab: 'stab', k: 'stemp', label: 'Temperature changes day to day', t: 'No temperature control in the inspection area', w: 'The X̄ chart jumps from day to day. Limits from these checks are wide, and the gauge looks "stable" but poor.', apply: T => { S.m.tempSigma = T / 25; } },
   ];
   function buildScen() {
@@ -2047,7 +2119,8 @@ const MSA = (() => {
     const btns = [...nav.querySelectorAll('button[data-tab]')];
     btns.forEach(b => { b.setAttribute('role', 'tab'); b.id = 'tabbtn-' + b.dataset.tab; b.setAttribute('aria-controls', 'tab-' + b.dataset.tab); const p = $('tab-' + b.dataset.tab); p.setAttribute('role', 'tabpanel'); p.setAttribute('aria-labelledby', b.id); });
     nav.addEventListener('keydown', e => {
-      const i = btns.findIndex(b => b.dataset.tab === S.tab); let k = -1;
+      const cur = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.tab;
+      const i = btns.findIndex(b => b.dataset.tab === (cur || S.tab)); let k = -1;
       if (e.key === 'ArrowRight') k = (i + 1) % btns.length; else if (e.key === 'ArrowLeft') k = (i - 1 + btns.length) % btns.length;
       else if (e.key === 'Home') k = 0; else if (e.key === 'End') k = btns.length - 1;
       if (k < 0) return; e.preventDefault(); setTab(btns[k].dataset.tab); btns[k].focus();
@@ -2135,8 +2208,14 @@ const MSA = (() => {
     S.learn = i; const st = STEPS[i];
     st.set(); setTab(st.tab, true); syncSpec(); syncFloor(); syncStudy(); update(true);
     renderLearn();
-    const target = $(st.f || 'learn');
-    if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); if (st.f) { target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash'); } }
+    // always bring the instruction into view first; the chart it talks about is reached with "Show me"
+    const L = $('learn'), top = L.getBoundingClientRect().top;
+    if (top < 0 || top > window.innerHeight * 0.4) L.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function showTarget(id) {
+    const t = $(id); if (!t) return;
+    t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
   }
   function renderLearn() {
     const L = $('learn'); if (S.learn < 0) { L.hidden = true; return; }
@@ -2151,13 +2230,15 @@ const MSA = (() => {
       h += `<p><b>${st.g.q}</b></p><div class="guess">${st.g.o.map((o, k) => `<button class="btn${done != null ? (k === st.g.a ? ' right' : k === done ? ' wrong' : '') : ''}" data-k="${k}"${done != null ? ' disabled' : ''}>${o}</button>`).join('')}</div>`;
       if (done != null) h += `<div class="reveal ${done === st.g.a ? 'ok' : 'no'}"><b>${done === st.g.a ? 'Right.' : 'Not quite.'}</b> ${st.g.r()}</div>`;
     }
+    if (st.f) h += `<p style="margin-top:10px"><button class="btn" data-show="${st.f}">Show me on the page ↓</button></p>`;
     $('learnBody').innerHTML = h;
     const lx = $('lxOut'); if (lx) { let out = 0; XR.avgs.forEach(row => row.forEach(v => { if (v > XR.uclX || v < XR.lclX) out++; })); lx.textContent = `${out} of ${S.p * S.a} averages outside the limits`; }
     $('learnDots').innerHTML = STEPS.map((_, k) => k < P.from || k > P.to ? '' : `<span class="${k === i ? 'on' : ''}" data-k="${k}" title="Step ${k - P.from + 1}"></span>`).join('');
     $('learnBack').disabled = i === 0;
-    $('learnNext').textContent = st.g && S.guessed[i] == null ? 'Skip' : i === P.to ? (nextP ? `Next: ${nextP.name} →` : 'Finish') : 'Next';
+    $('learnNext').textContent = i === P.to ? (nextP ? `Next: ${nextP.name} →` : 'Finish') : (st.g && S.guessed[i] == null ? 'Skip' : 'Next');
   }
   $('learnBody').addEventListener('click', e => {
+    const sb = e.target.closest('[data-show]'); if (sb) { showTarget(sb.dataset.show); return; }
     const b = e.target.closest('.guess button'); if (!b) return;
     const st = STEPS[S.learn]; S.guessed[S.learn] = +b.dataset.k; st.g.apply(); update(true); renderLearn();
   });
@@ -2265,7 +2346,7 @@ const MSA = (() => {
     const t = S.tab;
     if (t === 'basics') renderMap();
     if (t === 'prep') renderPrep();
-    if (t === 'grr') { renderResults(); renderTruth(); renderCharts(); renderDiag(); renderCalc(); renderData(); renderRange(); }
+    if (t === 'grr') { renderResults(); renderTruth(); renderBulls(); renderCharts(); renderDiag(); renderCalc(); renderData(); renderRange(); }
     if (t === 'bias') renderBias();
     if (t === 'lin') renderLin();
     if (t === 'stab') renderStab();
