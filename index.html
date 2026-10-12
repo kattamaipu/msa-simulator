@@ -14,6 +14,7 @@
 <meta property="og:url" content="https://kattamaipu.com/tools/msa/">
 <meta property="og:image" content="https://kattamaipu.com/assets/img/og-msa-simulator.png">
 <meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebApplication", "name": "MSA Simulator", "url": "https://kattamaipu.com/tools/msa/", "description": "Free browser-based simulator for learning Measurement System Analysis: gauge R&R (average and range, ANOVA), bias, linearity, stability, destructive tests, and attribute agreement (kappa) for go/no-go gauges and visual inspection.", "applicationCategory": "EducationalApplication", "operatingSystem": "Any (runs in a web browser)", "browserRequirements": "Requires JavaScript", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "INR"}, "inLanguage": "en", "image": "https://kattamaipu.com/assets/img/og-msa-simulator.png", "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/", "teaches": ["Gauge R&R", "Bias and linearity", "Gauge stability", "Destructive measurement systems", "Attribute agreement analysis (kappa)"], "publisher": {"@type": "Organization", "name": "The Kattamaipu Company", "url": "https://kattamaipu.com/"}}</script>
 <style>
   :root {
     --plane: #F6F4EC;
@@ -372,6 +373,7 @@
   @media (max-width: 600px) { .tm-pop { right: auto; left: 0; } }
   #trainerBtn.on { background: var(--warning-bg); border-color: var(--warning); color: var(--warning); }
   /* phone: jump between results and settings */
+  #aGuide td + td, #aGuide th + th { white-space: nowrap; }
   #decGaugeSeg { display: flex; flex-wrap: wrap; max-width: 100%; }
   #decGaugeSeg button, .seg.full button { white-space: normal; line-height: 1.25; }
   .jump { display: none; position: fixed; right: 14px; bottom: 14px; z-index: 20; border: 0; border-radius: 999px; background: var(--accent); color: #fff; font: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; box-shadow: 0 3px 10px rgba(0,0,0,.2); }
@@ -489,6 +491,11 @@
           <div class="hint" id="dSizeHint"></div>
         </div>
         <div class="setblock" id="set-attr">
+          <div class="field" style="margin-top:0">
+            <div class="field-head"><span class="name">What makes the call?</span></div>
+            <div class="seg full" id="aKindSeg"><button data-v="gauge">Go/no-go gauge</button><button data-v="visual">Visual inspection</button></div>
+            <label id="aVisExL" style="margin-top:8px">Defect <select id="aVisEx"><option value="scratch">Paint scratch on a visible surface</option><option value="flash">Moulding flash on a cosmetic edge</option><option value="crimp">Crimp appearance (bellmouth, strands)</option><option value="spatter">Weld spatter on a bracket</option></select></label>
+          </div>
           <div class="row3" style="grid-template-columns:1fr 1fr 1fr;">
             <label>Parts <select id="aN"><option>20</option><option>30</option><option>50</option><option>75</option><option>100</option></select></label>
             <label>Appraisers <select id="aA"><option>2</option><option>3</option></select></label>
@@ -499,7 +506,7 @@
             <div class="seg full" id="aSelSeg"><button data-v="mix">Good, bad and borderline</button><button data-v="prod">Straight from production</button><button data-v="border">Only borderline</button></div>
             <div class="hint" id="aSelHint"></div>
           </div>
-          <div class="hint">Every appraiser calls every part accept or reject, in random order, without seeing earlier calls; then trial 2, then trial 3. The reference call for each part comes from measuring it with a better (variable) gauge.</div>
+          <div class="hint">Every appraiser calls every part accept or reject, in random order, without seeing earlier calls; then trial 2, then trial 3. <span id="aRefHint"></span></div>
         </div>
         <div class="setblock" id="set-bias">
           <div class="row2">
@@ -785,10 +792,10 @@
         <div class="reveal-cover"><b>Results are hidden (trainer mode).</b> Ask the team first: what will this study show, and why? <button class="btn primary" data-act="reveal">Reveal results</button></div>
         <div class="res">
         <div id="attrOut"></div>
-        <div class="chartbox" style="margin-top:14px"><div class="chart-title">Every call, parts sorted from smallest to largest</div><div class="canvas-box"><canvas id="aGC"></canvas></div><div class="cap" id="aGCap"></div></div>
+        <div class="chartbox" style="margin-top:14px"><div class="chart-title" id="aGCt">Every call, parts sorted from smallest to largest</div><div class="canvas-box"><canvas id="aGC"></canvas></div><div class="cap" id="aGCap"></div></div>
         <div class="charts">
-          <div class="chartbox"><div class="chart-title">Near the lower limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZL"></canvas></div></div>
-          <div class="chartbox"><div class="chart-title">Near the upper limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZU"></canvas></div></div>
+          <div class="chartbox" id="aZLbox"><div class="chart-title">Near the lower limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZL"></canvas></div></div>
+          <div class="chartbox"><div class="chart-title" id="aZUt">Near the upper limit: how often is each part accepted?</div><div class="canvas-box"><canvas id="aZU"></canvas></div></div>
         </div>
         <div class="legend" id="attrLegend"></div>
         <div class="cap" id="aZCap" style="font-size:12px;color:var(--text-2);margin-top:4px"></div>
@@ -804,7 +811,7 @@
         <div class="section-head"><div><h2>What the gauge does to your decisions</h2><p>What you measure = the parts' spread + the gauge's spread (+ its bias). Near the limits, the gauge decides whether a part passes.</p></div></div>
         <div class="field" style="margin-top:0">
           <div class="field-head"><span class="name">Which gauge makes the call?</span></div>
-          <div class="seg" id="decGaugeSeg"><button data-v="var">Variable gauge (from gauge R&amp;R)</button><button data-v="attr">Attribute gauge (go/no-go)</button></div>
+          <div class="seg" id="decGaugeSeg"><button data-v="var">Variable gauge (from gauge R&amp;R)</button><button data-v="attr">Attribute (go/no-go or visual, as set in "Accept / reject")</button></div>
         </div>
         <div class="field">
           <div class="field-head"><span class="name">Guard band<span class="tech">acceptance limits inside the spec limits</span></span></div>
@@ -817,8 +824,8 @@
         <div class="canvas-box" style="margin-top:12px;"><canvas id="dC"></canvas></div>
         <div class="legend" id="decLegend"></div>
         <div class="charts" style="margin-top:10px">
-          <div class="chartbox"><div class="chart-title">Zoom on the lower limit</div><div class="canvas-box"><canvas id="dzL"></canvas></div></div>
-          <div class="chartbox"><div class="chart-title">Zoom on the upper limit</div><div class="canvas-box"><canvas id="dzU"></canvas></div></div>
+          <div class="chartbox" id="dzLbox"><div class="chart-title">Zoom on the lower limit</div><div class="canvas-box"><canvas id="dzL"></canvas></div></div>
+          <div class="chartbox"><div class="chart-title" id="dzUt">Zoom on the upper limit</div><div class="canvas-box"><canvas id="dzU"></canvas></div></div>
         </div>
         <div class="cap" id="decCap" style="font-size:13px;margin-top:8px;color:var(--text-2);"></div>
         </div>
@@ -1297,13 +1304,18 @@ const MSA = (() => {
     if (g > 0) return Math.max(0, pnormAcc((hi - x) / g) - pnormAcc((lo - x) / g));
     return x >= lo && x <= hi ? 1 : 0;
   }
-  // appraiser traits from the shop-floor setting: the last appraiser differs
-  function attrTraits(m, a, lsl, usl) {
-    const g = m.grey || 0, tol = usl - lsl, s0 = g + 0.03 * tol;
-    const tr = []; for (let j = 0; j < a; j++) tr.push({ shift: 0, g });
+  // appraiser traits from the shop-floor setting: the last appraiser differs.
+  // kind 'visual': severity scale 0–100, one limit (the limit sample at 50), plus lighting, limit samples and time per part
+  const VIS_LIMIT = 50, VIS_SCALE = 100;
+  function attrTraits(m, a, lsl, usl, kind) {
+    const vis = kind === 'visual', g0 = vis ? (m.greyV || 0) : (m.grey || 0), tol = vis ? VIS_SCALE : usl - lsl;
+    const g = g0 * (vis && m.light === 'poor' ? 4 : 1) * (vis && m.time === 'rushed' ? 1.6 : 1);
+    const s0 = g0 + 0.03 * tol;
+    const own = a === 2 ? [0.8, -0.8] : [0.9, -0.4, -1.1]; // without limit samples, everyone draws their own line
+    const tr = []; for (let j = 0; j < a; j++) tr.push({ shift: (vis && m.time === 'rushed' ? -0.03 * tol : 0) + (vis && m.limS === 'no' ? own[j] * 0.05 * tol : 0), g });
     const L = tr[a - 1];
-    if (m.attrApp === 'strict') L.shift = s0;
-    else if (m.attrApp === 'lenient') L.shift = -s0;
+    if (m.attrApp === 'strict') L.shift += s0;
+    else if (m.attrApp === 'lenient') L.shift -= s0;
     else if (m.attrApp === 'incons') L.g = 3 * g + 0.02 * tol;
     return tr;
   }
@@ -1319,16 +1331,31 @@ const MSA = (() => {
       for (let i = 0; i < nBad; i++) out.push(i % 2 ? usl + T * (0.3 + 0.5 * R.u()) : lsl - T * (0.3 + 0.5 * R.u()));
       while (out.length < n) out.push(near());
     }
-    for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
-    return out;
+    shuffle(out, R); return out;
   }
-  function genAttribute(m, n, a, r, sel, lsl, usl, seed) {
-    const R = rng(seed), traits = attrTraits(m, a, lsl, usl);
-    const parts = attrParts(n, sel, m.mu, m.sigmaP, lsl, usl, R);
+  // visual: true severity of the defect, 0 (none) to 100; worse than the limit sample (50) = bad
+  const VIS_PROD = { mu: 15, sigma: 12 }; // production: most parts well clear of the limit
+  function attrPartsVisual(n, sel, R) {
+    const L = VIS_LIMIT, w = 12.5, out = [], near = () => L + (2 * R.u() - 1) * w;
+    if (sel === 'prod') for (let i = 0; i < n; i++) out.push(Math.max(0, VIS_PROD.mu + VIS_PROD.sigma * R.n()));
+    else if (sel === 'border') for (let i = 0; i < n; i++) out.push(near());
+    else {
+      const nGood = Math.round(0.35 * n), nBad = Math.round(0.15 * n);
+      for (let i = 0; i < nGood; i++) out.push(35 * R.u());
+      for (let i = 0; i < nBad; i++) out.push(65 + 35 * R.u());
+      while (out.length < n) out.push(near());
+    }
+    shuffle(out, R); return out;
+  }
+  function shuffle(out, R) { for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(R.u() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; } }
+  function genAttribute(m, n, a, r, sel, lsl, usl, seed, kind) {
+    if (kind === 'visual') { lsl = -1e9; usl = VIS_LIMIT; }
+    const R = rng(seed), traits = attrTraits(m, a, lsl, usl, kind);
+    const parts = kind === 'visual' ? attrPartsVisual(n, sel, R) : attrParts(n, sel, m.mu, m.sigmaP, lsl, usl, R);
     const p = parts.map(x => traits.map(t => attrPAccept(x, lsl, usl, t.shift, t.g)));
     const d = p.map(row => row.map(q => { const o = []; for (let k = 0; k < r; k++) o.push(R.u() < q ? 1 : 0); return o; }));
     const ref = parts.map(x => (x >= lsl && x <= usl) ? 1 : 0);
-    return { d, ref, truth: { parts, traits, p } };
+    return { d, ref, truth: { parts, traits, p, lsl, usl } };
   }
   // Cohen's kappa from paired 0/1 decisions
   function cohen(pairs) {
@@ -1372,7 +1399,7 @@ const MSA = (() => {
     return { n, a, r, nBad, nGood, apps, pairK, allAgree: allAgree / n, allRef: allRef / n };
   }
 
-  return { genDestructive, nestedAnova, attrPAccept, attrTraits, genAttribute, attributeStudy, cohen, fleiss, decisionsWith, tCrit, tTwoSidedP, genBias, biasStudy, genLinearity, linearity, genStability, stability, K1, K2, K3, D4, A2, NDC_K, ALPHA_INTERACTION, rng, qnorm, pnorm: pnormAcc, fUpper, generate, avgRange, anova, rangeMethod, verdict, decisions, pAccept, mean, range, roundTo };
+  return { VIS_LIMIT, VIS_PROD, genDestructive, nestedAnova, attrPAccept, attrTraits, genAttribute, attributeStudy, cohen, fleiss, decisionsWith, tCrit, tTwoSidedP, genBias, biasStudy, genLinearity, linearity, genStability, stability, K1, K2, K3, D4, A2, NDC_K, ALPHA_INTERACTION, rng, qnorm, pnorm: pnormAcc, fUpper, generate, avgRange, anova, rangeMethod, verdict, decisions, pAccept, mean, range, roundTo };
 })();
 </script>
 <script>
@@ -1415,11 +1442,11 @@ const MSA = (() => {
   // ---------- State ----------
   const S = {
     preset: 'crimp', partName: '', unit: 'mm', nominal: 0, T: 0, res: 0, mpe: 0, dec: 3, formSigma: 0,
-    m: { sigmaP: 0, sigmaE: 0, fixture: 1, formFrac: 0, appSigma: 0, appMode: 'all', interSigma: 0, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: 0, grey: 0, attrApp: 'same' },
+    m: { sigmaP: 0, sigmaE: 0, fixture: 1, formFrac: 0, appSigma: 0, appMode: 'all', interSigma: 0, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: 0, grey: 0, greyV: 1, attrApp: 'same', light: 'good', limS: 'yes', time: 'ok' },
     p: 10, a: 3, r: 3, selection: 'range', method: 'xr', seed: 11, truthShown: false, scen: null,
     biasRef: null, biasN: 10, linN: 10, stabK: 25, stabN: 3, gb: 0, trainer: false, revealed: false,
     tab: 'basics', learn: -1, guessed: {},
-    dDesign: 'crossed', dB: 10, dBn: 5, dA: 3, dR: 3, attrN: 50, attrA: 3, attrR: 3, attrSel: 'mix', decGauge: 'var',
+    dDesign: 'crossed', dB: 10, dBn: 5, dA: 3, dR: 3, attrN: 50, attrA: 3, attrR: 3, attrSel: 'mix', decGauge: 'var', attrKind: 'gauge', visEx: 'scratch',
   };
   let G = null, XR = null, AN = null, RES = null; // current gauge R&R study
   let BS = null, BT = null, LS = null, LT = null, LREFS = null, SS = null, ST = null; // location studies
@@ -1480,11 +1507,15 @@ const MSA = (() => {
     { k: 'drift', tabs: ['stab'], name: 'Zero drifts over the weeks', tech: '→ stability (average)', min: T => -T / 3, max: T => T / 3, hint: 'Total shift of the zero from the first to the last stability check: wear, a loose setting, a dropped gauge.' },
     { k: 'wear', tabs: ['stab'], seg: [[0, 'Stays the same'], [1, 'Slowly worse'], [3, 'Clearly worse']], name: 'Gauge condition over the weeks', tech: '→ stability (range)', hint: 'Scatter grows as the contact faces wear or dirt builds up.' },
     { k: 'grey', tabs: ['attr', 'decA'], name: 'Grey zone of the accept / reject call', tech: 'σ of the call near a limit', min: () => 0, max: T => T / 4, hint: 'Near a limit the call is uncertain: gauge wear, how hard the gauge is pushed, lighting for a visual check. Parts well inside or well outside are always called right.' },
-    { k: 'attrApp', str: true, tabs: ['attr', 'decA'], seg: [['same', 'All alike'], ['strict', 'One strict'], ['lenient', 'One lenient'], ['incons', 'One inconsistent']], name: 'How the inspectors make the call', tech: '→ appraiser traits', hint: 'Strict: rejects parts just inside the limits. Lenient: accepts parts just outside. Inconsistent: a wider grey zone, so the same part gets different calls. The last inspector is the one who differs.' },
+    { k: 'greyV', tabs: ['attrV', 'decV'], name: 'Grey zone of the accept / reject call', tech: 'σ in severity points', min: () => 0, max: () => 10, dec: 1, unitless: true, hint: 'Severity runs from 0 (no defect) to 100; the limit sample sits at 50. Near it the call is uncertain. Parts far from the limit sample are always called right.' },
+    { k: 'light', str: true, tabs: ['attrV', 'decV'], seg: [['good', 'Good'], ['poor', 'Poor']], name: 'Lighting at the station', tech: '→ wider grey zone', hint: 'Too little light, glare or shadows: fine defects are hard to see, so calls near the limit scatter more for everyone.' },
+    { k: 'limS', str: true, tabs: ['attrV', 'decV'], seg: [['yes', 'At the station'], ['no', 'Not available']], name: 'Limit samples', tech: '→ each inspector draws their own line', hint: 'Without a physical limit sample (or boundary catalogue) at the station, each inspector keeps their own picture of "just acceptable".' },
+    { k: 'time', str: true, tabs: ['attrV', 'decV'], seg: [['ok', 'Enough'], ['rushed', 'Rushed']], name: 'Time per part', tech: '→ defects slip through', hint: 'Line speed or output pressure: inspectors look less carefully, so borderline defects get passed.' },
+    { k: 'attrApp', str: true, tabs: ['attr', 'decA', 'attrV', 'decV'], seg: [['same', 'All alike'], ['strict', 'One strict'], ['lenient', 'One lenient'], ['incons', 'One inconsistent']], name: 'How the inspectors make the call', tech: '→ appraiser traits', hint: 'Strict: rejects parts just inside the limits. Lenient: accepts parts just outside. Inconsistent: a wider grey zone, so the same part gets different calls. The last inspector is the one who differs.' },
   ];
   const fdec = f => f.dec != null ? f.dec : S.dec + 1;
   // only the causes that affect the open tab are shown; "Show all causes" lists the rest, faded
-  const relKey = () => S.tab === 'dec' && S.decGauge === 'attr' ? 'decA' : S.tab;
+  const relKey = () => S.tab === 'dec' && S.decGauge === 'attr' ? (S.attrKind === 'visual' ? 'decV' : 'decA') : S.tab === 'attr' && S.attrKind === 'visual' ? 'attrV' : S.tab;
   function setRel(f) {
     const rel = f.tabs.includes(relKey()), el = $('f-' + f.k);
     el.classList.toggle('dim', !rel); el.hidden = !rel && !S.showAll;
@@ -1544,7 +1575,7 @@ const MSA = (() => {
     sel.addEventListener('change', () => { S.scenPreset = null; loadPreset(sel.value); clearScen(); update(); });
   }
   function floorDefaults(p) {
-    return { sigmaP: p.sigmaP, sigmaE: p.sigmaE, fixture: 1, formFrac: 0, appSigma: p.appSigma, appMode: 'all', interSigma: p.interSigma, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: p.withinB || 0, grey: p.T / 60, attrApp: 'same' };
+    return { sigmaP: p.sigmaP, sigmaE: p.sigmaE, fixture: 1, formFrac: 0, appSigma: p.appSigma, appMode: 'all', interSigma: p.interSigma, tempSigma: 0, bias: 0, linSlope: 0, drift: 0, wear: 0, withinB: p.withinB || 0, grey: p.T / 60, greyV: 1, attrApp: 'same', light: 'good', limS: 'yes', time: 'ok' };
   }
   function loadPreset(key) {
     const p = PRESETS[key]; S.preset = key;
@@ -1603,10 +1634,12 @@ const MSA = (() => {
     $('dDesHint').textContent = nested ? 'Each appraiser tests pieces from their own batches. Use it when a batch is too small to share.' : 'Every appraiser tests pieces from every batch. Each batch must hold enough similar pieces for everyone.';
     $('dSizeHint').textContent = nested ? `${S.dA} appraisers × ${nb} batches × ${S.dR} pieces = ${S.dA * nb * S.dR} pieces, each tested once. Each batch needs ${S.dR} similar pieces.` : `${nb} batches × ${S.dA} appraisers × ${S.dR} pieces = ${nb * S.dA * S.dR} pieces, each tested once. Each batch needs ${S.dA * S.dR} similar pieces.`;
     $('aN').value = S.attrN; $('aA').value = S.attrA; $('aR').value = S.attrR; setSeg($('aSelSeg'), S.attrSel);
+    const vis = S.attrKind === 'visual'; setSeg($('aKindSeg'), S.attrKind); $('aVisExL').hidden = !vis; $('aVisEx').value = S.visEx;
+    $('aRefHint').textContent = vis ? 'The reference call for each part comes from an expert panel judging it together against the limit samples.' : 'The reference call for each part comes from measuring it with a better (variable) gauge.';
     $('aSelHint').textContent = {
-      mix: 'Right: clearly good, clearly bad, and plenty of parts close to both limits, on both sides. About a third or more should be bad.',
+      mix: vis ? 'Right: clearly good, clearly bad, and plenty of parts close to the limit sample, on both sides of it. About a third or more should be bad.' : 'Right: clearly good, clearly bad, and plenty of parts close to both limits, on both sides. About a third or more should be bad.',
       prod: 'Parts as they come off the line: nearly all clearly good. Everyone agrees, and the study proves nothing about the calls that matter.',
-      border: 'Only parts close to the limits. The hardest test there is: every inspector looks worse than in daily work.',
+      border: vis ? 'Only parts close to the limit sample. The hardest test there is: every inspector looks worse than in daily work.' : 'Only parts close to the limits. The hardest test there is: every inspector looks worse than in daily work.',
     }[S.attrSel];
   }
   $('dDesSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.dDesign = b.dataset.v; clearScen(); syncDA(); update(); });
@@ -1616,6 +1649,8 @@ const MSA = (() => {
   $('aN').addEventListener('change', e => { S.attrN = +e.target.value; clearScen(); update(); });
   $('aA').addEventListener('change', e => { S.attrA = +e.target.value; clearScen(); update(); });
   $('aR').addEventListener('change', e => { S.attrR = +e.target.value; clearScen(); update(); });
+  $('aKindSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.attrKind = b.dataset.v; clearScen(); syncDA(); syncFloor(); update(); });
+  $('aVisEx').addEventListener('change', e => { S.visEx = e.target.value; update(); });
   $('aSelSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S.attrSel = b.dataset.v; clearScen(); syncDA(); update(); });
   $('nParts').addEventListener('change', e => { S.p = +e.target.value; clearScen(); update(); });
   $('nApp').addEventListener('change', e => { S.a = +e.target.value; clearScen(); update(); });
@@ -1644,7 +1679,7 @@ const MSA = (() => {
     const nested = S.dDesign === 'nested';
     DG = MSA.genDestructive(lm, S.dDesign, nested ? S.dBn : S.dB, S.dA, S.dR, S.seed + 404);
     DS = nested ? MSA.nestedAnova(DG.data, 2 * S.T) : MSA.anova(DG.data, 2 * S.T);
-    AG = MSA.genAttribute(lm, S.attrN, S.attrA, S.attrR, S.attrSel, S.nominal - S.T, S.nominal + S.T, S.seed + 505);
+    AG = MSA.genAttribute(lm, S.attrN, S.attrA, S.attrR, S.attrSel, S.nominal - S.T, S.nominal + S.T, S.seed + 505, S.attrKind);
     AS = MSA.attributeStudy(AG.d, AG.ref);
   }
 
@@ -2062,11 +2097,14 @@ const MSA = (() => {
   // variable gauge: reading = part + bias + gauge error (σ from gauge R&R truth)
   // attribute gauge: each inspector's true accept curve (grey zone, strict/lenient), work shared equally
   function renderDecisions() {
-    const attr = S.decGauge === 'attr';
-    const sp = S.m.sigmaP, mu = S.nominal, lsl = mu - S.T, usl = mu + S.T;
-    const traits = attr ? MSA.attrTraits(S.m, S.attrA, lsl, usl) : null;
-    const sm = attr ? S.m.grey : G.truth.grr, b = attr ? 0 : S.m.bias;
-    const g = (S.gb || 0) * sm, alo = lsl + g, ahi = usl - g;
+    const attr = S.decGauge === 'attr', vis = attr && S.attrKind === 'visual';
+    // visual: severity 0–100, one limit (the limit sample); production mostly well clear of it
+    const sp = vis ? MSA.VIS_PROD.sigma : S.m.sigmaP, mu = vis ? MSA.VIS_PROD.mu : S.nominal, lsl = vis ? -1e9 : mu - S.T, usl = vis ? MSA.VIS_LIMIT : mu + S.T, Tq = vis ? 35 : S.T;
+    const traits = attr ? MSA.attrTraits(S.m, S.attrA, lsl, usl, S.attrKind) : null;
+    const sm = attr ? (vis ? S.m.greyV : S.m.grey) : G.truth.grr, b = attr ? 0 : S.m.bias;
+    const g = (S.gb || 0) * sm, alo = vis ? lsl : lsl + g, ahi = usl - g;
+    const fv = (v, e) => vis ? v.toFixed(1) : fmt(v, e), fvU = v => vis ? v.toFixed(1) + ' severity points' : fmtU(v);
+    $('dzLbox').hidden = vis; $('dzUt').textContent = vis ? 'Zoom on the limit sample' : 'Zoom on the upper limit';
     const pAccAt = (x, lo, hi) => attr ? traits.reduce((s2, t) => s2 + MSA.attrPAccept(x, lo, hi, t.shift, t.g), 0) / traits.length : MSA.pAccept(x, sm, b, lo, hi);
     const pAcc = v => pAccAt(v, alo, ahi);
     const d = attr ? MSA.decisionsWith(mu, sp, lsl, usl, pAcc) : MSA.decisions(mu, sp, sm, b, lsl, usl, alo, ahi);
@@ -2074,19 +2112,19 @@ const MSA = (() => {
     const f1 = v => !isFinite(v) ? '—' : v < 0.05 ? '< 0.1' : v.toFixed(v < 10 ? 1 : 0);
     setSeg($('gbSeg'), S.gb || 0); setSeg($('decGaugeSeg'), S.decGauge);
     document.querySelectorAll('.gbu').forEach(e => { e.textContent = attr ? 'grey zone σ' : 'gauge σ'; });
-    $('gbInfo').innerHTML = S.gb ? `Accept only between <b>${fmt(alo, 1)}</b> and <b>${fmt(ahi, 1)}</b> (each limit moved in by ${S.gb} × ${attr ? 'the grey zone σ' : 'gauge σ'} = ${fmtU(g)}${attr ? ': a tighter go/no-go gauge or stricter limit samples' : ''}). Without the guard band: ${f1(d0.goodRejected)} good rejected, ${f1(d0.badAccepted)} bad accepted per 1,000.` : (attr ? 'The go/no-go gauge or limit sample sits on the spec limits.' : 'Accept parts that read inside the spec limits.');
+    $('gbInfo').innerHTML = S.gb ? (vis ? `Reject anything worse than severity <b>${fv(ahi)}</b> (the line moved in by ${S.gb} × the grey zone σ = ${fvU(g)}: a stricter limit sample).` : `Accept only between <b>${fmt(alo, 1)}</b> and <b>${fmt(ahi, 1)}</b> (each limit moved in by ${S.gb} × ${attr ? 'the grey zone σ' : 'gauge σ'} = ${fmtU(g)}${attr ? ': a tighter go/no-go gauge or stricter limit samples' : ''}).`) + ` Without the guard band: ${f1(d0.goodRejected)} good rejected, ${f1(d0.badAccepted)} bad accepted per 1,000.` : (vis ? 'Inspectors judge against the limit sample itself.' : attr ? 'The go/no-go gauge or limit sample sits on the spec limits.' : 'Accept parts that read inside the spec limits.');
     const rej = `<div class="tile"><div class="k"><i style="background:var(--warning)"></i>Good parts rejected</div><div class="v" style="color:var(--warning)">${f1(d.goodRejected)}</div><div class="d">per 1,000 parts: scrap and rework you pay for</div></div>
       <div class="tile"><div class="k"><i style="background:var(--critical)"></i>Bad parts accepted</div><div class="v" style="color:var(--critical)">${f1(d.badAccepted)}</div><div class="d">per 1,000 parts (of ${f1(d.trulyBad)} truly bad): escapes</div></div>`;
     if (attr) {
       const avg = k => { const v = AS.apps.map(a2 => a2[k]).filter(isFinite); return v.length ? v.reduce((s2, x2) => s2 + x2, 0) / v.length : NaN; };
       const pct = v => isFinite(v) ? (100 * v).toFixed(1) + '%' : '—';
       $('decTiles').innerHTML = `
-        <div class="tile"><div class="k">Truly out of spec</div><div class="v">${f1(d.trulyBad)}</div><div class="d">per 1,000 parts from your process</div></div>
+        <div class="tile"><div class="k">${vis ? 'Truly worse than the limit sample' : 'Truly out of spec'}</div><div class="v">${f1(d.trulyBad)}</div><div class="d">per 1,000 parts from ${vis ? 'production (assumed: most parts well clear of the limit)' : 'your process'}</div></div>
         <div class="tile"><div class="k">The study said</div><div class="v" style="font-size:16px">miss ${pct(avg('miss'))}<br>false alarm ${pct(avg('fa'))}</div><div class="d">average over inspectors, from the "Accept / reject" tab</div></div>${rej}`;
     } else $('decTiles').innerHTML = `
       <div class="tile"><div class="k">True ${gl('cp', 'Cp')}</div><div class="v">${d.cpTrue.toFixed(2)}</div><div class="d">the parts as they really are</div></div>
       <div class="tile"><div class="k">Cp you would measure</div><div class="v">${d.cpObs.toFixed(2)}</div><div class="d">parts + gauge variation${Math.abs(b) > 0 ? `; Cpk ${d.cpkObs.toFixed(2)} with the bias` : ''}</div></div>${rej}`;
-    $('decLegend').innerHTML = '<span><i style="background:var(--accent)"></i>True parts</span>' + (attr ? '' : '<span><i style="background:var(--overall)"></i>What the gauge shows</span>') + '<span><i style="background:var(--critical)"></i>Spec limit</span><span><i style="background:rgba(154,103,0,0.7)"></i>Good parts rejected</span><span><i style="background:rgba(207,34,46,0.8)"></i>Bad parts accepted</span>' + (S.gb ? '<span><i style="background:#9a6700"></i>Acceptance limit (guard band)</span>' : '');
+    $('decLegend').innerHTML = '<span><i style="background:var(--accent)"></i>True parts</span>' + (attr ? '' : '<span><i style="background:var(--overall)"></i>What the gauge shows</span>') + '<span><i style="background:var(--critical)"></i>' + (vis ? 'Limit sample' : 'Spec limit') + '</span><span><i style="background:rgba(154,103,0,0.7)"></i>Good parts rejected</span><span><i style="background:rgba(207,34,46,0.8)"></i>Bad parts accepted</span>' + (S.gb ? '<span><i style="background:#9a6700"></i>Acceptance limit (guard band)</span>' : '');
     const pdf = (v, m, s2) => Math.exp(-0.5 * ((v - m) / s2) ** 2) / (s2 * Math.sqrt(2 * Math.PI));
     const fTrue = v => pdf(v, mu, sp);
     const goodRej = v => (v >= lsl && v <= usl) ? fTrue(v) * (1 - pAcc(v)) : 0;
@@ -2095,7 +2133,7 @@ const MSA = (() => {
     // main chart
     {
       const { x, w, h } = cv('dC', 190);
-      const so = attr ? sp : Math.sqrt(sp ** 2 + sm ** 2), lo = Math.min(mu - S.T * 1.3, mu - 4 * so + b), hi = Math.max(mu + S.T * 1.3, mu + 4 * so + b);
+      const so = attr ? sp : Math.sqrt(sp ** 2 + sm ** 2), lo = vis ? 0 : Math.min(mu - Tq * 1.3, mu - 4 * so + b), hi = vis ? 100 : Math.max(mu + Tq * 1.3, mu + 4 * so + b);
       const L = 14, R = w - 14, B = h - 22, px = v => L + (v - lo) / (hi - lo) * (R - L);
       const peak = pdf(mu, mu, sp), py = v => B - v / peak * (B - 14);
       const area = (fn, col) => { x.beginPath(); x.moveTo(px(lo), B); for (let i = 0; i <= 400; i++) { const v = lo + (hi - lo) * i / 400; x.lineTo(px(v), py(fn(v))); } x.lineTo(px(hi), B); x.closePath(); x.fillStyle = col; x.fill(); };
@@ -2104,14 +2142,15 @@ const MSA = (() => {
       area(goodRej, 'rgba(154,103,0,0.55)'); area(badAcc, 'rgba(207,34,46,0.65)');
       curve(fTrue, '#15603E'); if (!attr) curve(v => pdf(v, mu + b, so), '#C2410C');
       const vl = (v, col, lab, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash(dash); x.beginPath(); x.moveTo(p, 6); x.lineTo(p, B); x.stroke(); x.setLineDash([]); x.fillStyle = col; x.textAlign = 'center'; x.fillText(lab, p, B + 12); };
-      vl(lsl, '#cf222e', 'LSL', [5, 4]); vl(usl, '#cf222e', 'USL', [5, 4]);
-      if (g > 0) { vl(alo, '#9a6700', '', [2, 3]); vl(ahi, '#9a6700', '', [2, 3]); }
+      if (!vis) vl(lsl, '#cf222e', 'LSL', [5, 4]); vl(usl, '#cf222e', vis ? 'limit sample' : 'USL', [5, 4]);
+      if (g > 0) { if (!vis) vl(alo, '#9a6700', '', [2, 3]); vl(ahi, '#9a6700', '', [2, 3]); }
+      if (vis) { x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText('severity 0: no defect', L, B + 12); x.textAlign = 'right'; x.fillText('100', R, B + 12); }
       x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
     }
     // zoom on each limit: the wrong decisions are thin slivers on the main chart
-    const zoom = (id, lim, acc, side) => {
+    const zoom = (id, lim, acc, side, label) => {
       const { x, w, h } = cv(id, 164);
-      const span = Math.max(spread + Math.abs(b) + g, S.T * 0.08);
+      const span = Math.max(spread + Math.abs(b) + g, Tq * 0.08);
       const lo = lim - span, hi = lim + span, L = 10, R = w - 10, B = h - 34, T0 = 16, px = v => L + (v - lo) / (hi - lo) * (R - L);
       let ymax = 0; for (let i = 0; i <= 200; i++) { const v = lo + (hi - lo) * i / 200; ymax = Math.max(ymax, goodRej(v), badAcc(v)); }
       if (!(ymax > 0)) ymax = fTrue(lim) || 1;
@@ -2126,16 +2165,16 @@ const MSA = (() => {
       x.restore();
       const labs = [];
       const vl = (v, col, lab, dash) => { const p = Math.round(px(v)) + 0.5; x.strokeStyle = col; x.lineWidth = 1.5; x.setLineDash(dash); x.beginPath(); x.moveTo(p, 6); x.lineTo(p, B); x.stroke(); x.setLineDash([]); labs.push({ x: p, text: lab, col }); };
-      vl(lim, '#cf222e', side, [5, 4]);
+      vl(lim, '#cf222e', label || side, [5, 4]);
       if (g > 0) vl(acc, '#9a6700', 'acceptance limit', [2, 3]);
       placeLabels(x, labs, [B + 12, B + 25], L, R);
       x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
       x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText(side === 'LSL' ? '← bad' : 'good', L + 2, 8); x.textAlign = 'right'; x.fillText(side === 'LSL' ? 'good →' : 'bad →', R - 2, 8);
     };
-    zoom('dzL', lsl, alo, 'LSL'); zoom('dzU', usl, ahi, 'USL');
+    if (!vis) zoom('dzL', lsl, alo, 'LSL'); zoom('dzU', usl, ahi, 'USL', vis ? 'limit sample' : null);
     if (attr) {
       const odd = traits.some(t => t.shift !== 0 || t.g !== traits[0].g);
-      $('decCap').innerHTML = `A go/no-go call has no reading to put on a chart: what matters is how often parts near each limit get the wrong call. ${d.badAccepted >= 0.1 ? 'Bad parts just outside the limits get accepted: escapes to your customer.' : ''} ${odd ? `With ${S.attrA} inspectors sharing the work, one who calls differently changes the rates for the whole line.` : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} These are per 1,000 production parts. The study's miss and false alarm rates are per call in the study, which had far more parts near the limits than production does: the two answer different questions. Calculated with each inspector's true call (from "Show the truth" in the "Accept / reject" tab).`;
+      $('decCap').innerHTML = (vis ? 'Visual inspection: each part has a true defect severity, and anything worse than the limit sample is bad. ' : '') + `A ${vis ? 'visual' : 'go/no-go'} call has no reading to put on a chart: what matters is how often parts near each limit get the wrong call. ${d.badAccepted >= 0.1 ? 'Bad parts just outside the limits get accepted: escapes to your customer.' : ''} ${odd ? `With ${S.attrA} inspectors sharing the work, one who calls differently changes the rates for the whole line.` : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} These are per 1,000 production parts. The study's miss and false alarm rates are per call in the study, which had far more parts near the limits than production does: the two answer different questions. Calculated with each inspector's true call (from "Show the truth" in the "Accept / reject" tab).`;
     } else {
       const share = 100 * sm ** 2 / (sp ** 2 + sm ** 2);
       $('decCap').innerHTML = `Measurement adds <b>${share < 1 ? '< 1' : share.toFixed(0)}%</b> to the variance you see. ${d.cpTrue - d.cpObs > 0.1 ? 'Your SPC chart and Cp look worse than the process really is: you may chase problems that are in the gauge, not the machine.' : 'Cp hardly changes: the gauge is not hiding the process.'} ${d.badAccepted >= 0.1 ? 'Bad parts near the limits get accepted because the gauge reads them inside: these are the escapes that reach your customer.' : ''} ${S.gb ? 'The guard band trades escapes for more rejected good parts: check the zoom charts.' : 'Try a guard band to see the trade-off.'} Calculated with the gauge's true error (from "Show the truth")${Math.abs(b) > 0 ? ', including the bias' : ''}.`;
@@ -2290,14 +2329,18 @@ const MSA = (() => {
     return { eff: c / p.length, miss: nb ? m / nb : NaN, fa: ng ? f / ng : NaN };
   }
   function renderAttr() {
-    const A = AS, n = A.n, lsl = S.nominal - S.T, usl = S.nominal + S.T, parts = AG.truth.parts;
-    const nearW = 0.25 * S.T, nNear = parts.filter(x => Math.min(Math.abs(x - lsl), Math.abs(x - usl)) <= nearW).length;
-    $('attrInfo').textContent = `${n} parts × ${S.attrA} appraisers × ${S.attrR} trials = ${n * S.attrA * S.attrR} calls · reference: ${A.nGood} good, ${A.nBad} bad, ${nNear} near a limit`;
+    const A = AS, n = A.n, vis = S.attrKind === 'visual', lsl = AG.truth.lsl, usl = AG.truth.usl, parts = AG.truth.parts;
+    const VEX = { scratch: 'paint scratch', flash: 'moulding flash', crimp: 'crimp appearance', spatter: 'weld spatter' };
+    // visual: true severity 0–100 against the limit sample (50); gauge: true size against LSL / USL
+    const fx = v => vis ? 'severity ' + v.toFixed(0) : fmtU(v, 1), fd = v => vis ? v.toFixed(1) + ' severity points' : fmtU(v);
+    const nearW = vis ? 12.5 : 0.25 * S.T, nNear = parts.filter(x => vis ? Math.abs(x - usl) <= nearW : Math.min(Math.abs(x - lsl), Math.abs(x - usl)) <= nearW).length;
+    const limWord = vis ? 'the limit sample' : 'a limit';
+    $('attrInfo').textContent = `${vis ? 'Visual check, ' + VEX[S.visEx] + ' · ' : ''}${n} parts × ${S.attrA} appraisers × ${S.attrR} trials = ${n * S.attrA * S.attrR} calls · reference: ${A.nGood} good, ${A.nBad} bad, ${nNear} near ${limWord}`;
     const cls = A.apps.map(a => ({ eff: AGUIDE.eff(a.eff), miss: AGUIDE.miss(a.miss), fa: AGUIDE.fa(a.fa), k: AGUIDE.k(a.kRef.k) }));
     const overall = worst(cls.flatMap(c => [c.eff, c.miss, c.fa, c.k]).concat(A.pairK.map(p => AGUIDE.k(p.k))).filter(c => c !== 'none'));
     const thin = A.nBad < Math.max(5, 0.2 * n) || nNear < 0.2 * n;
     let verdict;
-    if (thin) verdict = `<div class="verdict v-warn">Cannot judge: the parts did not test the inspectors<small>${A.nBad < Math.max(5, 0.2 * n) ? `Only ${A.nBad} bad part${A.nBad === 1 ? '' : 's'} by reference` : `Only ${nNear} part${nNear === 1 ? '' : 's'} near a limit`}. Easy parts get the right call from anyone, so good-looking numbers here prove little. Pick about a third or more bad parts, and plenty close to both limits.</small></div>`;
+    if (thin) verdict = `<div class="verdict v-warn">Cannot judge: the parts did not test the inspectors<small>${A.nBad < Math.max(5, 0.2 * n) ? `Only ${A.nBad} bad part${A.nBad === 1 ? '' : 's'} by reference` : `Only ${nNear} part${nNear === 1 ? '' : 's'} near ${limWord}`}. Easy parts get the right call from anyone, so good-looking numbers here prove little. Pick about a third or more bad parts, and plenty close to ${vis ? 'the limit sample' : 'both limits'}.</small></div>`;
     else {
       const head = { good: 'The inspectors agree with each other and with the reference', warn: 'Marginal: improve before you rely on these calls', bad: 'Not acceptable: the calls cannot be trusted yet' }[overall];
       const bad = A.apps.map((a, j) => cls[j].miss === 'bad' ? `${APP_NAME[j]} accepts bad parts` : cls[j].fa === 'bad' ? `${APP_NAME[j]} rejects good parts` : cls[j].eff === 'bad' ? `${APP_NAME[j]} makes many wrong calls` : '').filter(Boolean);
@@ -2311,7 +2354,14 @@ const MSA = (() => {
     const wk = A.apps.map((a, j) => `${APP_NAME[j]} <b>${kap(a.kWithin.k)}</b>`).join(' · ');
     $('attrOut').innerHTML = verdict + tb + `<div style="font-size:13px;margin-top:10px">${gl('kappa', 'Kappa')} between appraisers: ${pk}</div>
       <div style="font-size:13px;margin-top:4px;color:var(--text-2)">Kappa within each appraiser (trial to trial): ${wk}</div>
-      <div class="hint">Guidelines used here, common in industry (agree yours with your customer): effectiveness 90% or more acceptable, 80% to 90% marginal; miss rate 2% or less acceptable, up to 5% marginal; false alarm rate 5% or less acceptable, up to 10% marginal; kappa above 0.75 good, 0.40 to 0.75 marginal, below 0.40 poor.</div>`;
+      <details class="calc" id="aGuide"${S.aGuide ? ' open' : ''}><summary>Guidelines used for the colours</summary>
+        <div class="tblwrap"><table class="comp" style="max-width:520px"><tr><th>Measure</th><th><span class="badge b-good" style="margin:0">OK</span></th><th><span class="badge b-warn" style="margin:0">Marginal</span></th><th><span class="badge b-bad" style="margin:0">Not OK</span></th></tr>
+          <tr><td>Effectiveness</td><td>≥ 90%</td><td>80–90%</td><td>&lt; 80%</td></tr>
+          <tr><td>Miss rate</td><td>≤ 2%</td><td>2–5%</td><td>&gt; 5%</td></tr>
+          <tr><td>False alarm rate</td><td>≤ 5%</td><td>5–10%</td><td>&gt; 10%</td></tr>
+          <tr><td>Kappa</td><td>&gt; 0.75</td><td>0.40–0.75</td><td>&lt; 0.40</td></tr></table></div>
+        <div class="hint">Miss rate: bad parts accepted. False alarm rate: good parts rejected. Common industry practice, not a law. Agree your own limits with your customer, and judge a marginal result by what the characteristic is for: a miss rate that is fine on a cosmetic feature is not fine on a safety one.</div></details>`;
+    $('aGuide').addEventListener('toggle', e => { S.aGuide = e.target.open; });
     // decision grid: rows = reference + every appraiser × trial; columns = parts by true size
     {
       const rows = 1 + S.attrA * S.attrR, rowH = 14, top = 18;
@@ -2325,23 +2375,23 @@ const MSA = (() => {
         if (wrong) { x.strokeStyle = '#16201B'; x.lineWidth = 1.6; x.strokeRect(px + 1.3, py + 1.8, Math.max(1, cw - 2.6), rowH - 3.6); }
         tip(px + cw / 2, py + rowH / 2, tipT);
       };
-      lab('Ref', top); ord.forEach((i, c) => cellD(c, 0, AG.ref[i], false, `Part ${i + 1}<br>true size ${fmtU(parts[i], 1)}<br>reference: <b>${AG.ref[i] ? 'good' : 'bad'}</b>`));
+      lab('Ref', top); ord.forEach((i, c) => cellD(c, 0, AG.ref[i], false, `Part ${i + 1}<br>${vis ? 'true ' : 'true size '}${fx(parts[i])}<br>reference: <b>${AG.ref[i] ? 'good' : 'bad'}</b>`));
       for (let j = 0; j < S.attrA; j++) for (let k = 0; k < S.attrR; k++) {
         const row = 1 + j * S.attrR + k; lab(APP_NAME[j] + (k + 1), top + row * rowH);
-        ord.forEach((i, c) => { const v = AG.d[i][j][k]; cellD(c, row, v, v !== AG.ref[i], `Part ${i + 1} · ${APP_NAME[j]} trial ${k + 1}<br>true size ${fmtU(parts[i], 1)}<br>call: <b>${v ? 'accept' : 'reject'}</b>${v !== AG.ref[i] ? (AG.ref[i] ? ' (false alarm)' : ' (miss)') : ''}`); });
+        ord.forEach((i, c) => { const v = AG.d[i][j][k]; cellD(c, row, v, v !== AG.ref[i], `Part ${i + 1} · ${APP_NAME[j]} trial ${k + 1}<br>${vis ? 'true ' : 'true size '}${fx(parts[i])}<br>call: <b>${v ? 'accept' : 'reject'}</b>${v !== AG.ref[i] ? (AG.ref[i] ? ' (false alarm)' : ' (miss)') : ''}`); });
         if (k === 0 && j > 0) { x.strokeStyle = '#16201B'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, top + row * rowH); x.lineTo(R, top + row * rowH); x.stroke(); }
       }
       // spec limits fall between the parts
       const labs = [];
-      [[lsl, 'LSL'], [usl, 'USL']].forEach(([lim, t2]) => { const k = parts.filter(v => v < lim).length, px = Math.round(L + k * cw) + 0.5; x.strokeStyle = '#cf222e'; x.lineWidth = 1.5; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(px, top - 4); x.lineTo(px, top + rows * rowH + 4); x.stroke(); x.setLineDash([]); labs.push({ x: px, text: t2, col: '#cf222e' }); });
+      (vis ? [[usl, 'limit sample']] : [[lsl, 'LSL'], [usl, 'USL']]).forEach(([lim, t2]) => { const k = parts.filter(v => v < lim).length, px = Math.round(L + k * cw) + 0.5; x.strokeStyle = '#cf222e'; x.lineWidth = 1.5; x.setLineDash([4, 3]); x.beginPath(); x.moveTo(px, top - 4); x.lineTo(px, top + rows * rowH + 4); x.stroke(); x.setLineDash([]); labs.push({ x: px, text: t2, col: '#cf222e' }); });
       placeLabels(x, labs, [8, 8], L, R);
-      x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('parts sorted by true size, smallest left', (L + R) / 2, h - 10);
+      x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText(vis ? 'parts sorted by true severity, cleanest left' : 'parts sorted by true size, smallest left', (L + R) / 2, h - 10);
       const wrongN = A.apps.reduce((s2, a) => s2 + a.missN + a.faN, 0);
-      $('aGCap').innerHTML = `Green: accept. Red with a dash: reject. A dark outline marks a wrong call (<b>${wrongN}</b> in total). Top row: the reference. Wrong calls bunch up next to the limits, where the call is hardest${S.attrSel === 'prod' ? ': and here few parts sit there' : ''}.`;
+      $('aGCap').innerHTML = `Green: accept. Red with a dash: reject. A dark outline marks a wrong call (<b>${wrongN}</b> in total). Top row: the reference. Wrong calls bunch up next to ${vis ? 'the limit sample' : 'the limits'}, where the call is hardest${S.attrSel === 'prod' ? ': and here few parts sit there' : ''}.`;
     }
     // grey zone: share of trials accepted, near each limit
-    const tr = AG.truth.traits, span = Math.max(...tr.map(t2 => 3.5 * t2.g + Math.abs(t2.shift)), 0.25 * S.T);
-    const zone = (id, lim, side) => {
+    const tr = AG.truth.traits, span = Math.max(...tr.map(t2 => 3.5 * t2.g + Math.abs(t2.shift)), vis ? 15 : 0.25 * S.T);
+    const zone = (id, lim, side, label) => {
       const { x, w, h } = cv(id, 190);
       const lo = lim - span, hi = lim + span, L = 40, R = w - 10, T0 = 12, B = h - 34, px = v => L + (v - lo) / (hi - lo) * (R - L), py = p => B - p * (B - T0);
       const goodLeft = side === 'LSL' ? false : true; // which side of the limit is good
@@ -2350,40 +2400,48 @@ const MSA = (() => {
       [0, 0.5, 1].forEach(p => { const yy = Math.round(py(p)) + 0.5; x.beginPath(); x.moveTo(L, yy); x.lineTo(R, yy); x.stroke(); x.fillText((p * 100) + '%', L - 4, yy); });
       if (S.truthShown) tr.forEach((t2, j) => { x.strokeStyle = APP_COL[j]; x.lineWidth = 1.8; x.setLineDash(j ? [5 - j, 2] : []); x.beginPath(); for (let i = 0; i <= 160; i++) { const v = lo + (hi - lo) * i / 160, p = MSA.attrPAccept(v, lsl, usl, t2.shift, t2.g); i ? x.lineTo(px(v), py(p)) : x.moveTo(px(v), py(p)); } x.stroke(); x.setLineDash([]); });
       let cnt = 0;
-      parts.forEach((v, i) => { if (v < lo || v > hi) return; cnt++; for (let j = 0; j < S.attrA; j++) { const sh = AG.d[i][j].reduce((s2, z) => s2 + z, 0) / S.attrR; const yy = py(sh) + (j - (S.attrA - 1) / 2) * 3; x.fillStyle = APP_COL[j]; x.globalAlpha = 0.8; mark(x, j, px(v), yy, 2.8); x.globalAlpha = 1; tip(px(v), yy, `Part ${i + 1} · ${APP_NAME[j]}<br>true size ${fmtU(v, 1)}<br>accepted in ${Math.round(sh * S.attrR)} of ${S.attrR} trials${S.truthShown ? `<br>true chance ${(100 * AG.truth.p[i][j]).toFixed(0)}%` : ''}`); } });
+      parts.forEach((v, i) => { if (v < lo || v > hi) return; cnt++; for (let j = 0; j < S.attrA; j++) { const sh = AG.d[i][j].reduce((s2, z) => s2 + z, 0) / S.attrR; const yy = py(sh) + (j - (S.attrA - 1) / 2) * 3; x.fillStyle = APP_COL[j]; x.globalAlpha = 0.8; mark(x, j, px(v), yy, 2.8); x.globalAlpha = 1; tip(px(v), yy, `Part ${i + 1} · ${APP_NAME[j]}<br>${vis ? 'true ' : 'true size '}${fx(v)}<br>accepted in ${Math.round(sh * S.attrR)} of ${S.attrR} trials${S.truthShown ? `<br>true chance ${(100 * AG.truth.p[i][j]).toFixed(0)}%` : ''}`); } });
       const p0 = Math.round(px(lim)) + 0.5; x.strokeStyle = '#cf222e'; x.lineWidth = 1.5; x.setLineDash([5, 4]); x.beginPath(); x.moveTo(p0, T0 - 4); x.lineTo(p0, B); x.stroke(); x.setLineDash([]);
       x.strokeStyle = 'rgba(22,32,42,0.25)'; x.lineWidth = 1; x.beginPath(); x.moveTo(L, B + 0.5); x.lineTo(R, B + 0.5); x.stroke();
-      placeLabels(x, [{ x: p0, text: side + ' ' + fmt(lim, 0), col: '#cf222e' }], [B + 12], L, R);
+      placeLabels(x, [{ x: p0, text: label || (side + ' ' + fmt(lim, 0)), col: '#cf222e' }], [B + 12], L, R);
       x.fillStyle = '#5F6672'; x.textAlign = 'left'; x.fillText(goodLeft ? 'good' : '← bad', L + 2, B + 26); x.textAlign = 'right'; x.fillText(goodLeft ? 'bad →' : 'good', R - 2, B + 26);
       if (!cnt) { x.fillStyle = '#5F6672'; x.textAlign = 'center'; x.fillText('No study parts near this limit', (L + R) / 2, (T0 + B) / 2); }
     };
-    zone('aZL', lsl, 'LSL'); zone('aZU', usl, 'USL');
+    $('aGCt').textContent = vis ? 'Every call, parts sorted from cleanest to worst' : 'Every call, parts sorted from smallest to largest';
+    $('aZLbox').hidden = vis; $('aZUt').textContent = vis ? 'Near the limit sample: how often is each part accepted?' : 'Near the upper limit: how often is each part accepted?';
+    if (!vis) zone('aZL', lsl, 'LSL'); zone('aZU', usl, 'USL', vis ? 'limit sample (severity 50)' : null);
     $('attrLegend').innerHTML = APP_NAME.slice(0, S.attrA).map((nm, j) => `<span>${shapeSvg(j)} Appraiser ${nm}</span>`).join('') + '<span><i style="background:rgba(21,96,62,0.25);border-radius:2px"></i>Good side of the limit</span>';
     $('aZCap').innerHTML = `Each mark: how often one appraiser accepted one part across the ${S.attrR} trials. A perfect call is 100% on the good side and 0% on the bad side. Marks in between are the grey zone, where the same part gets different calls.${S.truthShown ? ' Lines: each appraiser\'s true chance of accepting a part of that size. A line shifted into the good side is a strict inspector; into the bad side, a lenient one; a flatter line, an inconsistent one.' : ' Press "Show the truth" to see each appraiser\'s true acceptance curve.'}`;
     // truth
     const tt = $('attrTruth'); tt.hidden = !S.truthShown;
     if (S.truthShown) {
-      const desc = t2 => t2.shift > 0 ? `strict: limits pulled in by ${fmtU(t2.shift)}` : t2.shift < 0 ? `lenient: accepts up to ${fmtU(-t2.shift)} outside` : t2.g > S.m.grey * 1.01 + 1e-12 ? `inconsistent: grey zone σ ${fmtU(t2.g)}` : `calls on the limit, grey zone σ ${fmtU(t2.g)}`;
-      const sp = S.m.sigmaP;
+      const g0 = vis ? tr[0].g : S.m.grey;
+      const desc = (t2, j) => (t2.shift > 0 ? `strict: ${vis ? 'line drawn' : 'limits pulled in'} ${fd(t2.shift)} ${vis ? 'below the limit sample' : ''}` : t2.shift < 0 ? `lenient: accepts up to ${fd(-t2.shift)} ${vis ? 'worse than the limit sample' : 'outside'}` : `calls on the ${vis ? 'limit sample' : 'limit'}`) + `, grey zone σ ${fd(t2.g)}${j === S.attrA - 1 && S.m.attrApp === 'incons' ? ' (inconsistent)' : ''}`;
+      const sp = vis ? MSA.VIS_PROD.sigma : S.m.sigmaP, pmu = vis ? MSA.VIS_PROD.mu : S.nominal;
       tt.innerHTML = `<h3 style="margin:0">The truth behind this study</h3><table><tr><th>Appraiser</th><th>How they really call</th><th style="text-align:right">Effectiveness: study / true</th><th style="text-align:right">Miss: study / true</th><th style="text-align:right">False alarm: study / true</th><th style="text-align:right">In production, per 1,000: escapes / good rejected</th></tr>
-        ${A.apps.map((a, j) => { const e = attrExpect(j), t2 = tr[j], dd = MSA.decisionsWith(S.nominal, sp, lsl, usl, v => MSA.attrPAccept(v, lsl, usl, t2.shift, t2.g)); const f1 = v => v < 0.05 ? '< 0.1' : v.toFixed(v < 10 ? 1 : 0); return `<tr><td>${APP_NAME[j]}</td><td class="mini">${desc(t2)}</td><td class="n">${pctA(a.eff)} / ${pctA(e.eff)}</td><td class="n">${pctA(a.miss)} / ${pctA(e.miss)}</td><td class="n">${pctA(a.fa)} / ${pctA(e.fa)}</td><td class="n">${f1(dd.badAccepted)} / ${f1(dd.goodRejected)}</td></tr>`; }).join('')}</table>
-        <div class="hint">"True" uses each appraiser's real chance of accepting each study part: what the study would show on average if repeated many times with these parts. Production figures use your real process spread: far fewer parts sit near the limits there, so rates per 1,000 parts are much lower than the study's rates per bad or good part.</div>`;
+        ${A.apps.map((a, j) => { const e = attrExpect(j), t2 = tr[j], dd = MSA.decisionsWith(pmu, sp, lsl, usl, v => MSA.attrPAccept(v, lsl, usl, t2.shift, t2.g)); const f1 = v => v < 0.05 ? '< 0.1' : v.toFixed(v < 10 ? 1 : 0); return `<tr><td>${APP_NAME[j]}</td><td class="mini">${desc(t2, j)}</td><td class="n">${pctA(a.eff)} / ${pctA(e.eff)}</td><td class="n">${pctA(a.miss)} / ${pctA(e.miss)}</td><td class="n">${pctA(a.fa)} / ${pctA(e.fa)}</td><td class="n">${f1(dd.badAccepted)} / ${f1(dd.goodRejected)}</td></tr>`; }).join('')}</table>
+        <div class="hint">"True" uses each appraiser's real chance of accepting each study part: what the study would show on average if repeated many times with these parts. Production figures use ${vis ? 'a production mix where most parts are well clear of the limit sample' : 'your real process spread'}: far fewer parts sit near the limits there, so rates per 1,000 parts are much lower than the study's rates per bad or good part.</div>`;
     }
     // what now
     const items = [];
-    if (thin) items.push(['w', 'Pick parts that test the call', 'Include clearly good and clearly bad parts, and plenty close to both limits, on both sides of each. Measure each with a better (variable) gauge to set the reference. About a third or more should be bad.']);
+    if (thin) items.push(['w', 'Pick parts that test the call', vis ? 'Include clean parts, clearly bad parts, and plenty close to the limit sample on both sides of it. Collect real borderline parts from production and rework over a few weeks. Set the reference with an expert panel agreeing against the limit samples. About a third or more should be bad.' : 'Include clearly good and clearly bad parts, and plenty close to both limits, on both sides of each. Measure each with a better (variable) gauge to set the reference. About a third or more should be bad.']);
+    if (vis) {
+      if (S.m.light === 'poor') items.push(['b', 'Fix the lighting first', 'Agree a minimum light level for the station, remove glare and shadows, and use the same light where the limit samples were approved. Then repeat the study.']);
+      if (S.m.limS === 'no') items.push(['b', 'Each inspector draws their own line', 'Without limit samples at the station, one inspector rejects good parts while another passes bad ones. Put approved limit samples (or a boundary catalogue with photos) at every station, signed off with the customer where needed.']);
+      if (S.m.time === 'rushed') items.push(['b', 'Rushed inspection lets defects through', 'Check the time per part against what a careful look needs. Split the job, rotate inspectors, or move the check to where the part can be seen properly.']);
+    }
     const marg = [];
     A.apps.forEach((a, j) => {
-      if (cls[j].miss === 'bad') items.push(['b', `${APP_NAME[j]} accepts bad parts (miss rate ${pctA(a.miss)})`, 'These are escapes to your customer, the most serious failure. Check how the gauge is used (force, angle, cleanliness) or what the inspector accepts as "just OK". Retrain with limit samples on both sides of each limit.']);
+      if (cls[j].miss === 'bad') items.push(['b', `${APP_NAME[j]} accepts bad parts (miss rate ${pctA(a.miss)})`, vis ? 'These are escapes to your customer, the most serious failure. Check what this inspector accepts as "just OK", and retrain with limit samples on both sides of the limit.' : 'These are escapes to your customer, the most serious failure. Check how the gauge is used (force, angle, cleanliness) or what the inspector accepts as "just OK". Retrain with limit samples on both sides of each limit.']);
       if (cls[j].fa === 'bad') items.push(['b', `${APP_NAME[j]} rejects good parts (false alarm rate ${pctA(a.fa)})`, 'Scrap and rework you pay for, and often a sign of an inspector who was blamed for an escape before. Agree the limit with limit samples and make the criterion objective.']);
       if (cls[j].miss === 'warn' || cls[j].fa === 'warn' || cls[j].eff === 'warn') marg.push(APP_NAME[j]);
       if (a.within < 0.85 && S.attrR > 1) items.push(['w', `${APP_NAME[j]} does not agree with themselves on ${pctA(1 - a.within)} of the parts`, 'Same part, different call. Look at lighting, viewing distance, gauge handling, fatigue and time pressure. A call that depends on the moment is not a method yet.']);
     });
     if (!thin && marg.length) items.push(['w', `Marginal rates for ${marg.join(', ')}`, 'Close to the guideline, not clearly over it. Run again to see how much one study moves; with a few more borderline parts or trials the picture gets sharper.']);
-    if (!thin && S.attrA > 1 && A.apps.every((_, j) => cls[j].miss === 'bad' || cls[j].fa === 'bad')) items.push(['w', 'Everyone struggles near the limits', 'If all inspectors make wrong calls on the same parts, the gauge or the criterion is the problem, not the people: a worn go/no-go gauge, a vague visual standard. Improve the gauge, use clearer limit samples, or measure with a variable gauge.']);
+    if (!thin && S.attrA > 1 && A.apps.every((_, j) => cls[j].miss === 'bad' || cls[j].fa === 'bad')) items.push(['w', 'Everyone struggles near the limits', vis ? 'If all inspectors make wrong calls on the same parts, the standard or the conditions are the problem, not the people: a vague limit sample, poor light, too little time. Fix those before retraining.' : 'If all inspectors make wrong calls on the same parts, the gauge or the criterion is the problem, not the people: a worn go/no-go gauge, a vague visual standard. Improve the gauge, use clearer limit samples, or measure with a variable gauge.']);
     if (A.pairK.some(p => !isFinite(p.k)) || A.apps.some(a => !isFinite(a.kRef.k))) items.push(['w', 'Some kappas cannot be calculated', 'Kappa needs both calls in the data. When an inspector, or the reference, made only one kind of call, there is nothing to compare: the parts did not test the call.']);
     items.push(['', 'Percent agreement or kappa?', 'If almost every part is good, two inspectors who accept everything agree on almost every part, yet show nothing about their judgement. Kappa removes the agreement you would get by chance. Read both, and the miss rate first.']);
-    items.push(['', 'An attribute gauge cannot say how close a part is', 'A go/no-go call loses the size. For critical characteristics, or when a process runs close to a limit, a variable gauge tells you far more from far fewer parts.']);
+    items.push(vis ? ['', 'Can the defect be measured instead?', 'Some visual defects can be turned into a number (scratch length, flash height, spatter count per area). A measurement removes most of the judgement and tells you far more from far fewer parts.'] : ['', 'An attribute gauge cannot say how close a part is', 'A go/no-go call loses the size. For critical characteristics, or when a process runs close to a limit, a variable gauge tells you far more from far fewer parts.']);
     $('attrDiag').innerHTML = '<h3 style="margin:14px 0 0">It failed, now what? Reading the result</h3>' + items.map(([c, t2, s2]) => `<div class="item ${c}"><b>${t2}</b><span>${s2}</span></div>`).join('');
     // calculation: appraiser A against the reference
     const a0 = A.apps[0], T = a0.kRef.t, Nn = a0.kRef.N;
@@ -2396,11 +2454,11 @@ const MSA = (() => {
       <div class="f">Miss rate = bad parts accepted / calls on bad parts = ${T[1][0]} / ${T[1][0] + T[0][0]} = <b>${pctA(a0.miss)}</b> · False alarm rate = good parts rejected / calls on good parts = ${T[0][1]} / ${T[1][1] + T[0][1]} = <b>${pctA(a0.fa)}</b></div>
       <div class="x">Between appraisers, kappa pairs trial 1 with trial 1, trial 2 with trial 2, and so on. Within an appraiser, kappa compares the trials on each part (Fleiss' kappa). "Agrees with self" counts a part only when every trial gave the same call; "agrees with reference" only when every call was also right. Other methods exist (signal detection, the analytic method); they are not shown here.</div></div>`;
     // the calls
-    let dt = '<table class="tbl"><tr><th>Part</th><th>True size</th><th>Ref</th>';
+    let dt = `<table class="tbl"><tr><th>Part</th><th>${vis ? 'Severity' : 'True size'}</th><th>Ref</th>`;
     for (let j = 0; j < S.attrA; j++) for (let k = 0; k < S.attrR; k++) dt += `<th style="color:${APP_COL[j]}">${APP_NAME[j]}${k + 1}</th>`;
     dt += '</tr>';
-    parts.map((_, i) => i).sort((i, k) => parts[i] - parts[k]).forEach(i => { dt += `<tr><td>P${i + 1}</td><td>${fmt(parts[i], 1)}</td><td>${AG.ref[i] ? 'G' : 'B'}</td>${AG.d[i].map(c => c.map(v => `<td${v !== AG.ref[i] ? ' style="font-weight:700;color:var(--critical)"' : ''}>${v ? 'A' : 'R'}</td>`).join('')).join('')}</tr>`; });
-    $('attrData').innerHTML = dt + '</table><p class="calc-note">G / B: good or bad by reference. A / R: accept or reject. Wrong calls in bold red. Sorted by true size.</p>';
+    parts.map((_, i) => i).sort((i, k) => parts[i] - parts[k]).forEach(i => { dt += `<tr><td>P${i + 1}</td><td>${vis ? parts[i].toFixed(0) : fmt(parts[i], 1)}</td><td>${AG.ref[i] ? 'G' : 'B'}</td>${AG.d[i].map(c => c.map(v => `<td${v !== AG.ref[i] ? ' style="font-weight:700;color:var(--critical)"' : ''}>${v ? 'A' : 'R'}</td>`).join('')).join('')}</tr>`; });
+    $('attrData').innerHTML = dt + `</table><p class="calc-note">G / B: good or bad by reference. A / R: accept or reject. Wrong calls in bold red. Sorted by true ${vis ? 'severity' : 'size'}.</p>`;
   }
 
   // ---------- Location: shared chart for repeated readings of one master ----------
@@ -2664,7 +2722,10 @@ const MSA = (() => {
     { tab: 'attr', k: 'aincons', label: 'One inconsistent inspector', t: 'C gives the same part different calls', w: '"Agrees with self" drops for C, and both wrong-call rates rise. Look for lighting, fatigue or handling.', apply: () => { S.m.attrApp = 'incons'; } },
     { tab: 'attr', k: 'aprod', label: 'Parts straight from production', t: 'No parts picked near the limits', w: 'Almost every part is clearly good. Agreement looks excellent, yet the study never tested a hard call. The verdict says so.', apply: () => { S.attrSel = 'prod'; } },
     { tab: 'attr', k: 'aborder', label: 'Only borderline parts', t: 'Every part is a hard call', w: 'All inspectors look worse than in daily work. Good for training, misleading for accepting the inspection.', apply: () => { S.attrSel = 'border'; } },
-    { tab: 'attr', k: 'agrey', label: 'Worn go/no-go gauge', t: 'A wide grey zone for everyone', w: 'All inspectors make wrong calls on the same borderline parts: the gauge is the problem, not the people.', apply: T => { S.m.grey = T / 10; } },
+    { tab: 'attr', k: 'agrey', label: 'Worn go/no-go gauge', t: 'A wide grey zone for everyone', w: 'All inspectors make wrong calls on the same borderline parts: the gauge is the problem, not the people.', apply: T => { S.attrKind = 'gauge'; S.m.grey = T / 10; } },
+    { tab: 'attr', k: 'vlight', label: 'Visual: poor lighting', t: 'Inspection station in a dim corner, glare from a window', w: 'Every inspector misses more borderline defects and rejects more good parts. The people did not change; the light did.', apply: () => { S.attrKind = 'visual'; S.m.light = 'poor'; } },
+    { tab: 'attr', k: 'vnolim', label: 'Visual: no limit samples', t: 'The limit samples are in the quality office, not at the station', w: 'A rejects good parts, C passes bad ones: each draws their own line. Look at the grey-zone chart: the curves sit apart.', apply: () => { S.attrKind = 'visual'; S.m.limS = 'no'; } },
+    { tab: 'attr', k: 'vrush', label: 'Visual: rushed inspection', t: 'Line speed went up, inspection time did not', w: 'The miss rate climbs for everyone: borderline defects slip through. Check "Your decisions" for the escapes per 1,000 parts.', apply: () => { S.attrKind = 'visual'; S.m.time = 'rushed'; } },
     { tab: 'stab', k: 'stemp', label: 'Temperature changes day to day', t: 'No temperature control in the inspection area', w: 'The X̄ chart jumps from day to day. Limits from these checks are wide, and the gauge looks "stable" but poor.', apply: T => { S.m.tempSigma = T / 25; } },
   ];
   function buildScen() {
@@ -2726,7 +2787,7 @@ const MSA = (() => {
   document.querySelector('.qmap').addEventListener('click', e => { const b = e.target.closest('button[data-go]'); if (b) { setTab(b.dataset.go); $('tabs').scrollIntoView({ behavior: 'smooth', block: 'start' }); } });
 
   // ---------- Learn step by step ----------
-  function base(key = 'crimp') { loadPreset(key); studyDefaults(); S.seed = 11; S.truthShown = false; S.decGauge = 'var'; S.destSwitched = false; clearScen(); syncStudy(); }
+  function base(key = 'crimp') { loadPreset(key); studyDefaults(); S.seed = 11; S.truthShown = false; S.decGauge = 'var'; S.attrKind = 'gauge'; S.destSwitched = false; clearScen(); syncStudy(); }
   const STEPS = [
     { t: 'Every reading has two parts', tab: 'basics', set: () => base(),
       b: () => `<p>Every reading = <span class="tag">the part's true value</span> + <span class="tag">the measurement error</span>. You never see the true value; you only see readings.</p>
@@ -2801,7 +2862,7 @@ const MSA = (() => {
     { t: 'Accept or reject: the attribute study', tab: 'attr', f: 'aGC', set: () => base(),
       b: () => `<p>A go/no-go gauge or a visual check gives a call, not a number. ${S.attrN} parts, ${S.attrA} inspectors, ${S.attrR} trials each. Each part's reference call comes from measuring it with a better gauge.</p>
         <ul><li><b>Effectiveness:</b> share of right calls (inspector A: ${pctA(AS.apps[0].eff)})</li><li><b>Miss rate:</b> bad parts accepted, your escapes</li><li><b>False alarm rate:</b> good parts rejected, your scrap</li><li><b>Kappa:</b> agreement after removing the agreement you would get by chance</li></ul>
-        <p class="note">The parts decide whether the study means anything: clearly good, clearly bad, and plenty close to both limits.</p>` },
+        <p class="note">The parts decide whether the study means anything: clearly good, clearly bad, and plenty close to both limits. For a visual check, switch "What makes the call?" to "Visual inspection": the same numbers, judged against a limit sample.</p>` },
     { t: 'Guess: one inspector is lenient', tab: 'attr', set: () => base(),
       g: { q: 'Inspector C passes parts that are just outside the limits. Which number rises for C?', o: ['Miss rate', 'False alarm rate', 'Neither: only kappa shows it'], a: 0,
         apply: () => { S.m.attrApp = 'lenient'; syncFloor(); },
@@ -2898,11 +2959,11 @@ const MSA = (() => {
   document.addEventListener('click', e => { const m = document.querySelector('.trainer-menu'); if (m.open && !m.contains(e.target)) m.open = false; });
   let lastKey = '';
   function stateKey() {
-    return JSON.stringify([S.preset, S.nominal, S.T, S.res, S.m, S.p, S.a, S.r, S.selection, S.method, S.biasRef, S.biasN, S.linN, S.stabK, S.stabN, S.seed, S.gb, S.dDesign, S.dB, S.dBn, S.dA, S.dR, S.attrN, S.attrA, S.attrR, S.attrSel, S.decGauge]);
+    return JSON.stringify([S.preset, S.nominal, S.T, S.res, S.m, S.p, S.a, S.r, S.selection, S.method, S.biasRef, S.biasN, S.linN, S.stabK, S.stabN, S.seed, S.gb, S.dDesign, S.dB, S.dBn, S.dA, S.dR, S.attrN, S.attrA, S.attrR, S.attrSel, S.decGauge, S.attrKind, S.visEx]);
   }
 
   // ---------- Shareable link: the URL keeps the example, tab and every setting ----------
-  const NUM_M = ['sigmaP', 'sigmaE', 'fixture', 'formFrac', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'linSlope', 'drift', 'wear', 'withinB', 'grey'];
+  const NUM_M = ['sigmaP', 'sigmaE', 'fixture', 'formFrac', 'appSigma', 'interSigma', 'tempSigma', 'bias', 'linSlope', 'drift', 'wear', 'withinB', 'grey', 'greyV'];
   function writeHash() {
     if (S.learn >= 0) return;
     const q = new URLSearchParams();
@@ -2915,8 +2976,9 @@ const MSA = (() => {
     NUM_M.forEach(k => { if (Math.abs(S.m[k] - D[k]) > 1e-15) q.set(k, +(+S.m[k]).toPrecision(5)); });
     if (S.m.appMode !== 'all') q.set('appMode', S.m.appMode);
     if (S.m.attrApp !== 'same') q.set('attrApp', S.m.attrApp);
+    if (S.m.light !== 'good') q.set('light', S.m.light); if (S.m.limS !== 'yes') q.set('limS', S.m.limS); if (S.m.time !== 'ok') q.set('time', S.m.time);
     const st = { p: [S.p, 10], a: [S.a, 3], r: [S.r, 3], sel: [S.selection, 'range'], meth: [S.method, 'xr'], bn: [S.biasN, 10], ln: [S.linN, 10], sk: [S.stabK, 25], sn: [S.stabN, 3], gb: [S.gb, 0], seed: [S.seed, 11],
-      dd: [S.dDesign, 'crossed'], db: [S.dB, 10], dbn: [S.dBn, 5], da: [S.dA, 3], dr: [S.dR, 3], an: [S.attrN, 50], aa: [S.attrA, 3], ar: [S.attrR, 3], asel: [S.attrSel, 'mix'], dg: [S.decGauge, 'var'] };
+      dd: [S.dDesign, 'crossed'], db: [S.dB, 10], dbn: [S.dBn, 5], da: [S.dA, 3], dr: [S.dR, 3], an: [S.attrN, 50], aa: [S.attrA, 3], ar: [S.attrR, 3], asel: [S.attrSel, 'mix'], dg: [S.decGauge, 'var'], ak: [S.attrKind, 'gauge'], vex: [S.visEx, 'scratch'] };
     Object.entries(st).forEach(([k, [v, d]]) => { if (v !== d) q.set(k, v); });
     if (S.biasRef != null) q.set('bref', S.biasRef);
     if (S.truthShown) q.set('truth', 1);
@@ -2933,6 +2995,8 @@ const MSA = (() => {
     NUM_M.forEach(k => { if (q.has(k)) S.m[k] = num(k, S.m[k]); });
     if (q.get('appMode') === 'one') S.m.appMode = 'one';
     if (['strict', 'lenient', 'incons'].includes(q.get('attrApp'))) S.m.attrApp = q.get('attrApp');
+    if (q.get('light') === 'poor') S.m.light = 'poor'; if (q.get('limS') === 'no') S.m.limS = 'no'; if (q.get('time') === 'rushed') S.m.time = 'rushed';
+    S.attrKind = q.get('ak') === 'visual' ? 'visual' : 'gauge'; S.visEx = ['scratch', 'flash', 'crimp', 'spatter'].includes(q.get('vex')) ? q.get('vex') : 'scratch';
     const int = (k, d, ok) => { const v = parseInt(q.get(k), 10); return ok.includes(v) ? v : d; };
     S.p = int('p', 10, [5, 6, 7, 8, 9, 10]); S.a = int('a', 3, [2, 3]); S.r = int('r', 3, [2, 3]);
     S.selection = ['range', 'batch', 'extremes'].includes(q.get('sel')) ? q.get('sel') : 'range';

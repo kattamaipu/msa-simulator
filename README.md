@@ -13,7 +13,7 @@ Set what is true about a gauge, run the study, and see what the study finds, and
 - Location studies: bias (t-test and 95% interval), linearity (fitted line with confidence bands), stability (X̄ and R chart of a master)
 - Width study: gauge R&R by the average and range method and by ANOVA, %GRR against total variation and against tolerance, ndc
 - Destructive tests: batches in place of parts, with a shared-batch (crossed) or own-batch (nested ANOVA) design, and a split of what the study calls repeatability into the gauge and the material
-- Attribute agreement for go/no-go gauges and visual checks: kappa, effectiveness, miss rate and false alarm rate, with strict, lenient and inconsistent inspectors
+- Attribute agreement for go/no-go gauges and visual inspection against limit samples: kappa, effectiveness, miss rate and false alarm rate, with strict, lenient and inconsistent inspectors
 - Compare a calibration "pass" with what the bias and linearity studies find on the part
 - See what a variable or an attribute gauge does to accept/reject decisions, with an optional guard band
 - Step-by-step lessons for beginners, full controls for engineers, and a trainer mode for classroom use
